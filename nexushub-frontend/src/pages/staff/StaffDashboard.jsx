@@ -20,10 +20,6 @@ export default function StaffDashboard() {
   // State to control the popup modal for assigned resources
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   const fetchDashboardData = async () => {
     try {
       const response = await API.get("/staff/dashboard");
@@ -40,6 +36,10 @@ export default function StaffDashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const handleReleaseResource = async (resourceCode) => {
     if (

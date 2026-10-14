@@ -38,10 +38,6 @@ export default function Resources() {
 
   const statusOptions = ["Available", "In Use", "Maintenance", "Retired"];
 
-  useEffect(() => {
-    fetchResources();
-  }, []);
-
   const fetchResources = async () => {
     try {
       const response = await API.get("/resources");
@@ -52,6 +48,10 @@ export default function Resources() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchResources();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

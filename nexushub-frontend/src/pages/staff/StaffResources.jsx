@@ -29,11 +29,6 @@ export default function StaffResources() {
 
   const statusOptions = ["Available", "In Use", "Maintenance", "Retired"];
 
-  useEffect(() => {
-    fetchResources();
-    loadCurrentUserInfo();
-  }, []);
-
   const loadCurrentUserInfo = () => {
     try {
       // Retrieve stored user object from login session
@@ -57,6 +52,11 @@ export default function StaffResources() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchResources();
+    loadCurrentUserInfo();
+  }, []);
 
   const handleReleaseResource = async (resourceCode) => {
     if (

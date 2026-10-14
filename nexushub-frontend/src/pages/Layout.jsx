@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import API from "../services/api";
+import API, { getMediaUrl } from "../services/api";
 import { Bell, Trash2 } from "lucide-react";
 
 export default function Layout() {
@@ -10,9 +10,36 @@ export default function Layout() {
   const notifRef = useRef(null);
   const searchRef = useRef(null);
   
-  const [userName, setUserName] = useState("Administrator");
-  const [userRole, setUserRole] = useState("Administrator");
-  const [profilePic, setProfilePic] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const u = localStorage.getItem("user");
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      try {
+        const u = localStorage.getItem("user");
+        setUser(u ? JSON.parse(u) : null);
+      } catch {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    window.addEventListener("storage", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("userProfileUpdated", handleProfileUpdate);
+      window.removeEventListener("storage", handleProfileUpdate);
+    };
+  }, []);
+
+  const userName = user?.name || "Administrator";
+  const userRole = user?.role || "Administrator";
+  const profilePic = user?.profile_picture || null;
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Notification States
@@ -25,19 +52,14 @@ export default function Layout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser?.name) setUserName(parsedUser.name);
-        if (parsedUser?.role) setUserRole(parsedUser.role);
-        if (parsedUser?.profile_picture) setProfilePic(parsedUser.profile_picture);
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
+  const fetchNotifications = async () => {
+    try {
+      const res = await API.get("/notifications");
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchNotifications();
@@ -128,14 +150,6 @@ export default function Layout() {
     }
   };
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await API.get("/notifications");
-      setNotifications(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
 
   const handleToggleNotifications = () => {
     setIsNotifOpen(!isNotifOpen);
@@ -441,7 +455,7 @@ export default function Layout() {
                 <div className="w-8 h-8 rounded-xl overflow-hidden bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400 shadow-inner">
                   {profilePic ? (
                     <img 
-                      src={`http://localhost:5000${profilePic}`} 
+                      src={getMediaUrl(profilePic)} 
                       alt="Profile" 
                       className="w-full h-full object-cover" 
                     />

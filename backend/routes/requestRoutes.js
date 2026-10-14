@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db'); // Adjust this path to your PostgreSQL connection pool instance
+const pool = require('../config/db');
+const verifyToken = require('../middleware/authMiddleware');
+
+router.use(verifyToken);
 
 // Helper function to create system notifications
 const sendNotification = async (targetUserId, title, message) => {

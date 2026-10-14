@@ -6,7 +6,18 @@ export default function AssignedRequest() {
   const [loading, setLoading] = useState(true);
 
   // Retrieve logged-in staff name dynamically from localStorage (fallback to "Staff Member")
-  const [currentStaffName, setCurrentStaffName] = useState("Staff Member");
+  const [currentStaffName] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        return parsed?.name || "Staff Member";
+      }
+    } catch {
+      return "Staff Member";
+    }
+    return "Staff Member";
+  });
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,26 +32,6 @@ export default function AssignedRequest() {
 
   const statusOptions = ["Pending", "In Progress", "Completed", "Rejected"];
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser?.name) {
-          setCurrentStaffName(parsedUser.name);
-        }
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentStaffName) {
-      fetchAssignedRequests();
-    }
-  }, [currentStaffName]);
-
   const fetchAssignedRequests = async () => {
     try {
       const response = await API.get("/staff/requests/assigned", {
@@ -53,6 +44,10 @@ export default function AssignedRequest() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAssignedRequests();
+  }, [currentStaffName]);
 
   const handleStatusUpdate = async () => {
     if (!selectedRequest) return;

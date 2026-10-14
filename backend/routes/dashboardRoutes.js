@@ -31,49 +31,7 @@ router.get("/summary", verifyToken, async (req, res) => {
       const s = (r.status || "").toLowerCase();
       return ["resolved", "closed", "completed", "approved"].includes(s);
     }).length;
-    // DELETE /api/dashboard/activities - Clear all activity logs
-    router.delete("/activities", verifyToken, async (req, res) => {
-      try {
-        // Optional: check if the user is an administrator
-        if (
-          (req.user.role || "").toLowerCase() !== "administrator" &&
-          (req.user.role || "").toLowerCase() !== "admin"
-        ) {
-          return res
-            .status(403)
-            .json({
-              success: false,
-              error: "Unauthorized. Admin privileges required.",
-            });
-        }
 
-        // Delete all rows from activity_logs
-        await pool.query("DELETE FROM activity_logs");
-
-        // Log the clear action itself (or you can leave it out if you want a totally blank slate)
-        await pool.query(
-          "INSERT INTO activity_logs (entity_type, action, description, created_at) VALUES ($1, $2, $3, NOW())",
-          [
-            "System",
-            "Clear History",
-            `Admin cleared all recent activity logs.`,
-          ],
-        );
-
-        res.json({
-          success: true,
-          message: "Activity history cleared successfully.",
-        });
-      } catch (err) {
-        console.error("Clear Activities Error:", err.message);
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: "Server error while clearing activity history.",
-          });
-      }
-    });
     // 3. Fetch resources from 'resources' and map categories
     const resRes = await pool.query("SELECT * FROM resources");
     const resources = resRes.rows || [];
@@ -153,12 +111,48 @@ router.get("/summary", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Dashboard Summary Error:", err.message);
-    res
-      .status(500)
-      .json({
+    res.status(500).json({
+      success: false,
+      error: "Server error fetching dashboard summary.",
+    });
+  }
+});
+
+// DELETE /api/dashboard/activities - Clear all activity logs
+router.delete("/activities", verifyToken, async (req, res) => {
+  try {
+    // Check if the user has administrator or admin role
+    const userRole = (req.user?.role || "").toLowerCase();
+    if (userRole !== "administrator" && userRole !== "admin" && userRole !== "manager") {
+      return res.status(403).json({
         success: false,
-        error: "Server error fetching dashboard summary.",
+        error: "Unauthorized. Admin privileges required.",
       });
+    }
+
+    // Delete all rows from activity_logs
+    await pool.query("DELETE FROM activity_logs");
+
+    // Log the clear action itself
+    await pool.query(
+      "INSERT INTO activity_logs (entity_type, action, description, created_at) VALUES ($1, $2, $3, NOW())",
+      [
+        "System",
+        "Clear History",
+        "Admin cleared all recent activity logs.",
+      ],
+    );
+
+    res.json({
+      success: true,
+      message: "Activity history cleared successfully.",
+    });
+  } catch (err) {
+    console.error("Clear Activities Error:", err.message);
+    res.status(500).json({
+      success: false,
+      error: "Server error while clearing activity history.",
+    });
   }
 });
 

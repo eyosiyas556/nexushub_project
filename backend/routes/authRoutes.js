@@ -19,15 +19,45 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+const fs = require('fs');
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/'); 
+        cb(null, uploadDir); 
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage: storage });
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (extname && mimetype) {
+            return cb(null, true);
+        }
+        cb(new Error('Only image files (jpeg, jpg, png, gif, webp) are allowed!'));
+    }
+});
+
+const handleAvatarUpload = (req, res, next) => {
+    upload.single('avatar')(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ error: `Upload error: ${err.message}` });
+        } else if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        next();
+    });
+};
 
 // Login Route
 router.post('/login', async (req, res) => {
@@ -156,7 +186,7 @@ router.post('/reset-password-otp', async (req, res) => {
 });
 
 // PUT endpoint to update full profile details (name, email, phone, department, role, status, avatar)
-router.put('/profile', verifyToken, upload.single('avatar'), async (req, res) => {
+router.put('/profile', verifyToken, handleAvatarUpload, async (req, res) => {
     try {
         const userId = req.user.id;
         const { name, email, phone, department, role, status } = req.body;
@@ -172,19 +202,25 @@ router.put('/profile', verifyToken, upload.single('avatar'), async (req, res) =>
             picturePath = `/uploads/${req.file.filename}`;
         }
 
+        const currentRole = currentUser.rows[0].role;
+        const currentStatus = currentUser.rows[0].status;
+        const userIsAdmin = (req.user.role || '').toLowerCase() === 'administrator' || (req.user.role || '').toLowerCase() === 'admin';
+        const finalRole = userIsAdmin ? (role || currentRole) : currentRole;
+        const finalStatus = userIsAdmin ? (status || currentStatus) : currentStatus;
+
         // 2. Update database with all fields from your schema
         const updateResult = await pool.query(
             `UPDATE users 
              SET name = COALESCE(NULLIF($1, ''), name), 
                  email = COALESCE(NULLIF($2, ''), email), 
-                 phone = COALESCE($3, phone), 
+                 phone = COALESCE(NULLIF($3, ''), phone), 
                  department = COALESCE(NULLIF($4, ''), department), 
                  role = COALESCE(NULLIF($5, ''), role),
                  status = COALESCE(NULLIF($6, ''), status),
                  profile_picture = COALESCE($7, profile_picture) 
              WHERE id = $8 
              RETURNING id, name, email, phone, department, role, status, profile_picture`,
-            [name, email, phone, department, role, status, picturePath, userId]
+            [name, email, phone, department, finalRole, finalStatus, picturePath, userId]
         );
 
         res.json({
@@ -193,12 +229,15 @@ router.put('/profile', verifyToken, upload.single('avatar'), async (req, res) =>
         });
     } catch (err) {
         console.error('Error updating user profile:', err);
+        if (err.code === '23505') {
+            return res.status(400).json({ error: 'A user with this email already exists.' });
+        }
         res.status(500).json({ error: 'Server error updating user profile.' });
     }
 });
 
 // PUT endpoint to update profile picture only (kept for backward compatibility)
-router.put('/profile-picture', verifyToken, upload.single('avatar'), async (req, res) => {
+router.put('/profile-picture', verifyToken, handleAvatarUpload, async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded.' });

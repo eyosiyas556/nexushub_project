@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const verifyToken = require('../middleware/authMiddleware');
 
 // GET /api/activities - Fetch recent system activities
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 15'

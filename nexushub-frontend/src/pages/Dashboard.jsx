@@ -27,10 +27,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   const fetchDashboardData = async () => {
     try {
       const response = await API.get("/dashboard/summary");
@@ -55,6 +51,10 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const handleClearHistory = async () => {
     if (!window.confirm("Are you sure you want to clear all recent activity logs?")) return;

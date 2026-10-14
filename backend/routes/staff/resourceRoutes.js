@@ -21,10 +21,23 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const query = `
       SELECT r.*, 
-             COALESCE(wr.requested_by, 'Unknown User') AS current_user_name
+             (
+               SELECT wr.requested_by 
+               FROM work_requests wr 
+               WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
+                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned', 'pending')
+               ORDER BY wr.id DESC 
+               LIMIT 1
+             ) AS current_user_name,
+             (
+               SELECT wr.requested_by 
+               FROM work_requests wr 
+               WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
+                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned', 'pending')
+               ORDER BY wr.id DESC 
+               LIMIT 1
+             ) AS in_use_by
       FROM resources r
-      LEFT JOIN work_requests wr ON r.resource_code = wr.resource_code 
-        AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned', 'pending')
       ORDER BY r.id DESC
     `;
     const result = await pool.query(query);

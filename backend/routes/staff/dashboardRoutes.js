@@ -19,7 +19,8 @@ router.delete("/requests", verifyToken, async (req, res) => {
     await db.query(
       `DELETE FROM work_requests 
        WHERE (
-         LOWER(TRIM(requested_by)) = LOWER(TRIM($1))
+         user_id = $5
+         OR LOWER(TRIM(requested_by)) = LOWER(TRIM($1))
          OR LOWER(TRIM(assigned_to)) = LOWER(TRIM($1))
          OR LOWER(TRIM(requested_by)) = LOWER(TRIM($2))
          OR LOWER(TRIM(assigned_to)) = LOWER(TRIM($2))
@@ -28,7 +29,7 @@ router.delete("/requests", verifyToken, async (req, res) => {
          OR requested_by ILIKE $4
          OR assigned_to ILIKE $4
        ) AND LOWER(status) IN ('resolved', 'closed', 'completed', 'approved', 'rejected')`,
-      [staffName, staffEmail, String(staffId), `%${firstName}%`]
+      [staffName, staffEmail, String(staffId), `%${firstName}%`, staffId]
     );
 
     res.json({ success: true, message: "Work requests cleared successfully." });
@@ -156,7 +157,8 @@ router.get("/dashboard", verifyToken, async (req, res) => {
     const firstName = staffName.split(" ")[0];
     const requestsQuery = `
       SELECT DISTINCT * FROM work_requests 
-      WHERE LOWER(TRIM(requested_by)) = LOWER(TRIM($1))
+      WHERE user_id = $5
+         OR LOWER(TRIM(requested_by)) = LOWER(TRIM($1))
          OR LOWER(TRIM(assigned_to)) = LOWER(TRIM($1))
          OR LOWER(TRIM(requested_by)) = LOWER(TRIM($2))
          OR LOWER(TRIM(assigned_to)) = LOWER(TRIM($2))
@@ -172,6 +174,7 @@ router.get("/dashboard", verifyToken, async (req, res) => {
       staffEmail,
       String(staffId),
       `%${firstName}%`,
+      staffId,
     ]);
 
     const allRequests = staffRequestsRes.rows;
@@ -200,7 +203,8 @@ router.get("/dashboard", verifyToken, async (req, res) => {
         SELECT * FROM resources 
         WHERE resource_code IN (
           SELECT resource_code FROM work_requests 
-          WHERE (LOWER(TRIM(requested_by)) = LOWER(TRIM($1)) 
+          WHERE (user_id = $4
+              OR LOWER(TRIM(requested_by)) = LOWER(TRIM($1)) 
               OR LOWER(TRIM(requested_by)) = LOWER(TRIM($2)) 
               OR requested_by::text = $3)
           AND LOWER(status) IN ('approved', 'in progress', 'resolved', 'completed')
@@ -212,6 +216,7 @@ router.get("/dashboard", verifyToken, async (req, res) => {
         staffName,
         staffEmail,
         String(staffId),
+        staffId,
       ]);
       assignedResources = resResult.rows;
     } catch (err) {

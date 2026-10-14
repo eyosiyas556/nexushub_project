@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../config/db"); // Adjust path to your database configuration pool if needed
+const pool = require("../config/db");
 const bcrypt = require("bcrypt");
+const verifyToken = require("../middleware/authMiddleware");
+
+// Protect all member routes with token verification
+router.use(verifyToken);
 
 // GET all members / users
 router.get("/", async (req, res) => {
@@ -37,9 +41,9 @@ router.post("/", async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6, $7) 
              RETURNING id, name, email, phone, department, role, status, created_at`,
       [
-        name,
-        email,
-        phone || null,
+        name.trim(),
+        email.trim(),
+        phone ? phone.trim() : null,
         department,
         role || "Staff",
         status || "Active",
@@ -72,15 +76,46 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, department, role, status } = req.body;
+    const { name, email, phone, department, role, status, password } = req.body;
 
-    const updatedMemberResult = await pool.query(
-      `UPDATE users 
-             SET name = $1, email = $2, phone = $3, department = $4, role = $5, status = $6 
-             WHERE id = $7 
-             RETURNING id, name, email, phone, department, role, status, created_at`,
-      [name, email, phone || null, department, role, status, id],
-    );
+    let query = `
+      UPDATE users 
+      SET name = $1, email = $2, phone = $3, department = $4, role = $5, status = $6 
+      WHERE id = $7 
+      RETURNING id, name, email, phone, department, role, status, created_at
+    `;
+    let values = [
+      name ? name.trim() : "",
+      email ? email.trim() : "",
+      phone ? phone.trim() : null,
+      department,
+      role,
+      status,
+      id
+    ];
+
+    if (password && password.trim().length >= 6) {
+      const saltRounds = 10;
+      const password_hash = await bcrypt.hash(password.trim(), saltRounds);
+      query = `
+        UPDATE users 
+        SET name = $1, email = $2, phone = $3, department = $4, role = $5, status = $6, password_hash = $7
+        WHERE id = $8 
+        RETURNING id, name, email, phone, department, role, status, created_at
+      `;
+      values = [
+        name ? name.trim() : "",
+        email ? email.trim() : "",
+        phone ? phone.trim() : null,
+        department,
+        role,
+        status,
+        password_hash,
+        id
+      ];
+    }
+
+    const updatedMemberResult = await pool.query(query, values);
 
     if (updatedMemberResult.rows.length === 0) {
       return res.status(404).json({ error: "Member not found" });
@@ -97,6 +132,11 @@ router.put("/:id", async (req, res) => {
     res.json(updatedMember);
   } catch (err) {
     console.error("Error updating member:", err.message);
+    if (err.code === "23505") {
+      return res
+        .status(400)
+        .json({ error: "A user with this email already exists." });
+    }
     res.status(500).json({ error: "Server error while updating member" });
   }
 });

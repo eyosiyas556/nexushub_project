@@ -30,10 +30,6 @@ export default function Requests() {
   const priorities = ["Low", "Medium", "High", "Urgent"];
   const statuses = ["Pending", "Approved", "In Progress", "Resolved", "Rejected", "Closed"];
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
   const fetchRequests = async () => {
     try {
       const response = await API.get("/requests");
@@ -44,6 +40,10 @@ export default function Requests() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const fetchAssignableStaff = async (requestId) => {
     try {

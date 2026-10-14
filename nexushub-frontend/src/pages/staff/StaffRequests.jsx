@@ -33,11 +33,6 @@ export default function StaffWorkRequests() {
   const categoryOptions = ["Equipment", "Resource", "Maintenance", "IT Support", "Facilities", "Procurement", "Other"];
   const statusOptions = ["Pending", "In Progress", "Completed", "Resolved", "Rejected"];
 
-  useEffect(() => {
-    fetchWorkRequests();
-    fetchResources();
-  }, []);
-
   const fetchWorkRequests = async () => {
     try {
       const response = await API.get("/staff/requests");
@@ -57,6 +52,11 @@ export default function StaffWorkRequests() {
       console.error("Failed to fetch system resources:", err);
     }
   };
+
+  useEffect(() => {
+    fetchWorkRequests();
+    fetchResources();
+  }, []);
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -136,7 +136,7 @@ export default function StaffWorkRequests() {
     }
   };
 
-  const handleStatusChange = async (requestId, newStatus) => {
+  const _handleStatusChange = async (requestId, newStatus) => {
     let rejectionReason = null;
 
     if (newStatus.toLowerCase() === "rejected") {
@@ -148,7 +148,7 @@ export default function StaffWorkRequests() {
     }
 
     try {
-      const response = await API.patch(`/work-requests/${requestId}/status`, {
+      const response = await API.patch(`/staff/requests/${requestId}/status`, {
         status: newStatus,
         rejection_reason: rejectionReason,
       });

@@ -55,9 +55,8 @@ export default function Login() {
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.setItem('role', user.role);
 
-            if (user.role === 'Administrator') {
-                navigate('/dashboard');
-            } else if (user.role === 'Staff') {
+            const role = (user.role || '').toLowerCase();
+            if (role === 'staff') {
                 navigate('/staff/dashboard');
             } else {
                 navigate('/dashboard');

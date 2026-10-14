@@ -20,16 +20,34 @@ export default function ProtectedRoute({ children, allowedRole }) {
 
     // 1. If not logged in at all, redirect to login page
     if (!token) {
-        return <Navigate to="/" replace />;
+        return <Navigate to="/login" replace />;
     }
 
-    // 2. If a specific role is required and doesn't match (case-insensitive)
-    if (allowedRole && userRole?.toLowerCase() !== allowedRole?.toLowerCase()) {
-        // Redirect dynamically based on the user's actual role
-        if (userRole?.toLowerCase() === 'staff') {
-            return <Navigate to="/staff/dashboard" replace />;
+    const normalizedUserRole = (userRole || '').toLowerCase();
+    const isAdminOrManager = normalizedUserRole === 'administrator' || normalizedUserRole === 'admin' || normalizedUserRole === 'manager';
+    const isStaff = normalizedUserRole === 'staff';
+
+    // 2. If a specific role is required
+    if (allowedRole) {
+        const normalizedAllowed = allowedRole.toLowerCase();
+
+        let isAuthorized = false;
+        if (normalizedAllowed === 'administrator') {
+            isAuthorized = isAdminOrManager;
+        } else if (normalizedAllowed === 'staff') {
+            isAuthorized = isStaff || isAdminOrManager;
+        } else {
+            isAuthorized = normalizedUserRole === normalizedAllowed;
         }
-        return <Navigate to="/dashboard" replace />;
+
+        if (!isAuthorized) {
+            if (isStaff) {
+                return <Navigate to="/staff/dashboard" replace />;
+            } else if (isAdminOrManager) {
+                return <Navigate to="/dashboard" replace />;
+            }
+            return <Navigate to="/login" replace />;
+        }
     }
 
     // 3. If authorized, render the requested page component

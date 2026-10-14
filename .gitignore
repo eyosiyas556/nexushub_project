@@ -7,7 +7,8 @@ nexushub-frontend/node_modules/
 backend/.env
 
 # Uploaded files
-backend/uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Build output
 nexushub-frontend/dist/

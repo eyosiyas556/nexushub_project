@@ -28,10 +28,6 @@ export default function Members() {
     password: "", // Required for database user creation
   });
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
   const fetchMembers = async () => {
     try {
       const response = await API.get("/members");
@@ -42,6 +38,10 @@ export default function Members() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

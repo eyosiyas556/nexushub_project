@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://nexushub-project.onrender.com/api' : 'http://localhost:5000/api');
+
 const API = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL,
 });
 
 // Automatically attach JWT token to every request if available
@@ -12,5 +14,13 @@ API.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Helper to construct complete URLs for static media / profile pictures
+export const getMediaUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const origin = (API.defaults.baseURL || baseURL).replace(/\/api\/?$/, '');
+    return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 export default API;

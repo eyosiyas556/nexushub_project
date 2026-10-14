@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import API from "../services/api";
+import API, { getMediaUrl } from "../services/api";
 
 export default function Profile() {
   const fileInputRef = useRef(null);
@@ -40,7 +40,7 @@ export default function Profile() {
           status: user.status || "Active",
         });
         if (user.profile_picture) {
-          setPreviewImage(`http://localhost:5000${user.profile_picture}`);
+          setPreviewImage(getMediaUrl(user.profile_picture));
         }
       } catch (e) {
         console.error("Failed to parse user", e);
@@ -82,28 +82,32 @@ export default function Profile() {
         data.append("avatar", selectedFile);
       }
 
-      const response = await fetch("http://localhost:5000/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: data,
-      });
+      const response = await API.put("/auth/profile", data);
+      const result = response.data;
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to update profile");
+      if (result.user) {
+        localStorage.setItem("user", JSON.stringify(result.user));
+        setFormData({
+          name: result.user.name || "",
+          email: result.user.email || "",
+          phone: result.user.phone || "",
+          department: result.user.department || "",
+          role: result.user.role || "Administrator",
+          status: result.user.status || "Active",
+        });
+        if (result.user.profile_picture) {
+          setPreviewImage(getMediaUrl(result.user.profile_picture));
+        }
+        setSelectedFile(null);
+        window.dispatchEvent(new Event("userProfileUpdated"));
+      }
 
-      localStorage.setItem("user", JSON.stringify(result.user));
       setIsSuccess(true);
       setMessage("Admin profile updated successfully!");
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
     } catch (err) {
       console.error(err);
       setIsSuccess(false);
-      setMessage(err.message || "Error updating profile.");
+      setMessage(err.response?.data?.error || err.message || "Error updating profile.");
     } finally {
       setLoading(false);
     }

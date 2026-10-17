@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import API, { getMediaUrl } from "../services/api";
 
 export default function Profile() {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -103,7 +105,11 @@ export default function Profile() {
       }
 
       setIsSuccess(true);
-      setMessage("Admin profile updated successfully!");
+      setMessage("Admin profile updated successfully! Redirecting to dashboard...");
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
     } catch (err) {
       console.error(err);
       setIsSuccess(false);
@@ -169,9 +175,18 @@ export default function Profile() {
             <h1 className="text-xs font-bold tracking-wide">Admin Profile & Security Settings</h1>
             <p className="text-[10px] text-slate-400">Manage your administrative information and password</p>
           </div>
-          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">
-            {formData.role}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="text-[10px] px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/10 transition cursor-pointer"
+            >
+              ← Back to Dashboard
+            </button>
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">
+              {formData.role}
+            </span>
+          </div>
         </div>
 
         <div className="p-5 space-y-4">

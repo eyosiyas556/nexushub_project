@@ -160,18 +160,36 @@ export default function StaffLayout() {
     setIsSearchOpen(false);
   };
 
-  // Mark an individual notification as read when clicked
-  const handleNotificationClick = async (notif) => {
-    if (notif.is_read) return;
+  // Determine which staff page to navigate to based on notification title
+  const getNotificationRedirect = (notif) => {
+    const title = notif.title?.toLowerCase() || "";
+    if (title.includes("task assigned")) return "/staff/assigned-requests";
+    if (title.includes("rejected")) return "/staff/requests";
+    if (title.includes("equipment")) return "/staff/requests";
+    if (title.includes("status updated")) return "/staff/requests";
+    if (title.includes("removed")) return "/staff/requests";
+    return "/staff/requests";
+  };
 
-    try {
-      await API.patch(`/notifications/${notif.id}/read`);
-      setNotifications(
-        notifications.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
-      );
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
+  // Mark notification as read and redirect to the correct dashboard
+  const handleNotificationClick = async (notif) => {
+    const redirectPath = getNotificationRedirect(notif);
+
+    // Mark as read if still unread
+    if (!notif.is_read) {
+      try {
+        await API.patch(`/notifications/${notif.id}/read`);
+        setNotifications(
+          notifications.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
+        );
+      } catch (err) {
+        console.error("Failed to mark notification as read:", err);
+      }
     }
+
+    // Close panel and navigate to the relevant page
+    setIsNotifOpen(false);
+    navigate(redirectPath);
   };
 
   const handleClearNotifications = async () => {

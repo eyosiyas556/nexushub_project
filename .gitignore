@@ -11,6 +11,7 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 
 # Build output
+dist/
 nexushub-frontend/dist/
 
 # Logs

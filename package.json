@@ -1,0 +1,9 @@
+{
+  "name": "nexushub-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build-frontend.js",
+    "start": "node backend/server.js"
+  }
+}

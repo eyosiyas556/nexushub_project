@@ -63,8 +63,12 @@ const handleAvatarUpload = (req, res, next) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required.' });
+        }
 
-        const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        const trimmedEmail = email.trim().toLowerCase();
+        const user = await pool.query('SELECT * FROM users WHERE LOWER(TRIM(email)) = $1', [trimmedEmail]);
         if (user.rows.length === 0) {
             return res.status(401).json({ error: 'Invalid email or password.' });
         }

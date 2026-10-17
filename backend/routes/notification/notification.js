@@ -18,7 +18,7 @@ router.get('/', verifyToken, async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error("Error fetching notifications:", err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
 

@@ -53,6 +53,9 @@ export default function StaffLayout() {
   const [searchLoading, setSearchLoading] = useState(false);
 
   const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
       const res = await API.get("/notifications");
       setNotifications(res.data || []);

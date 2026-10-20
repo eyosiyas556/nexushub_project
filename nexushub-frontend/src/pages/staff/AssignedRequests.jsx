@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
+import socket from "../../services/socket";
 
 export default function AssignedRequest() {
   const [assignedRequests, setAssignedRequests] = useState([]);
@@ -47,6 +48,13 @@ export default function AssignedRequest() {
 
   useEffect(() => {
     fetchAssignedRequests();
+
+    // Real-time: re-fetch whenever assigned requests change
+    socket.on("requests_updated", fetchAssignedRequests);
+
+    return () => {
+      socket.off("requests_updated", fetchAssignedRequests);
+    };
   }, [currentStaffName]);
 
   const handleStatusUpdate = async () => {
@@ -184,6 +192,7 @@ export default function AssignedRequest() {
                     const isResolved = 
                       req.status?.toLowerCase() === "resolved" || 
                       req.status?.toLowerCase() === "closed";
+                    const isRejected = req.status?.toLowerCase() === "rejected";
 
                     return (
                       <tr key={req.id} className="hover:bg-[#F8FAFC]/50 transition">
@@ -227,18 +236,21 @@ export default function AssignedRequest() {
                           </span>
                         </td>
                         <td className="py-4 px-6 text-right">
-                          {/* Disappears if admin has marked it Resolved or Closed */}
-                          {!isResolved ? (
+                          {isResolved ? (
+                            <span className="text-emerald-600 font-semibold italic text-[11px]">
+                              Completed &amp; Resolved
+                            </span>
+                          ) : isRejected ? (
+                            <span className="text-rose-500 font-semibold italic text-[11px]">
+                              Rejected
+                            </span>
+                          ) : (
                             <button
                               onClick={() => openViewModal(req)}
                               className="text-[#0F172A] hover:underline font-semibold cursor-pointer"
                             >
                               Manage Task
                             </button>
-                          ) : (
-                            <span className="text-emerald-600 font-semibold italic text-[11px]">
-                              Completed & Resolved
-                            </span>
                           )}
                         </td>
                       </tr>

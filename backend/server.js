@@ -1,11 +1,17 @@
 const express = require('express');
+const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.io
+const { init: initSocket } = require('./socket');
+initSocket(server);
 
 // Middleware
 app.use(cors());
@@ -52,7 +58,7 @@ app.use('/api/work-requests', staffRequestRoutes); // Alias for work-requests co
 app.use('/api/staff', changePasswordRouter);
 app.use('/api/staff', staffDashboardRoutes);
 
-// Start server
-app.listen(PORT, () => {
+// Start server (use http server, not app.listen — required for Socket.io)
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

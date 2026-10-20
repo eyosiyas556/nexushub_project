@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../config/db'); // PostgreSQL connection pool
 const verifyToken = require('../../middleware/authMiddleware'); // Authentication middleware
+const { getIO } = require('../../socket');
 
 // Helper to generate a unique request number
 const generateRequestNumber = () => {
@@ -15,6 +16,8 @@ const sendNotification = async (targetUserId, title, message) => {
       'INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)',
       [targetUserId, title, message]
     );
+    // Real-time: push new notification to all connected clients immediately
+    getIO().emit('notifications_updated');
   } catch (err) {
     console.error("Failed to create notification:", err.message);
   }
@@ -171,6 +174,10 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
       console.log(`[SUCCESS] Task rejection notification sent to ${admins.rows.length} admin(s).`);
     }
 
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('dashboard_updated');
+
     res.json({ success: true, data: updatedReq });
   } catch (err) {
     console.error("Error updating work request status:", err.message);
@@ -249,6 +256,10 @@ router.post('/', verifyToken, async (req, res) => {
       );
     }
 
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('dashboard_updated');
+
     res.status(201).json({ 
       success: true, 
       message: "Work request submitted successfully",
@@ -317,6 +328,9 @@ router.put('/:id', verifyToken, async (req, res) => {
         resource_code ? resource_code.trim() : null,
         id
       ]);
+
+      // Real-time: broadcast to all clients
+      getIO().emit('requests_updated');
 
       return res.json({ success: true, message: 'Request updated successfully', data: rows[0] });
     }
@@ -436,6 +450,11 @@ router.delete('/:id', verifyToken, async (req, res) => {
         [userId, "AUTO_RELEASED", "Resource", `${userName} deleted request #${currentReq.request_number}, automatically releasing resource ${resourceCode} back to available inventory.`]
       );
     }
+
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: 'Work request deleted and resource successfully released.' });
   } catch (err) {

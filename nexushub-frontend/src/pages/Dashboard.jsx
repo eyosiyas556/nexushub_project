@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import socket from "../services/socket";
 import { 
   Users, 
   FileText, 
@@ -54,6 +55,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Real-time: re-fetch whenever any relevant data changes
+    socket.on("dashboard_updated", fetchDashboardData);
+    socket.on("requests_updated", fetchDashboardData);
+    socket.on("members_updated", fetchDashboardData);
+    socket.on("resources_updated", fetchDashboardData);
+
+    return () => {
+      socket.off("dashboard_updated", fetchDashboardData);
+      socket.off("requests_updated", fetchDashboardData);
+      socket.off("members_updated", fetchDashboardData);
+      socket.off("resources_updated", fetchDashboardData);
+    };
   }, []);
 
   const handleClearHistory = async () => {

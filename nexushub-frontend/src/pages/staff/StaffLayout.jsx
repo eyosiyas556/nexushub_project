@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import API, { getMediaUrl } from "../../services/api";
 import { Bell, Trash2 } from "lucide-react";
+import socket from "../../services/socket";
 
 export default function StaffLayout() {
   const navigate = useNavigate();
@@ -67,10 +68,8 @@ export default function StaffLayout() {
   useEffect(() => {
     fetchNotifications();
 
-    // Poll for new notifications every 10 seconds
-    const notifInterval = setInterval(() => {
-      fetchNotifications();
-    }, 10000);
+    // Real-time: refresh notifications instantly when backend emits the event
+    socket.on("notifications_updated", fetchNotifications);
 
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
@@ -88,7 +87,7 @@ export default function StaffLayout() {
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      clearInterval(notifInterval);
+      socket.off("notifications_updated", fetchNotifications);
     };
   }, []);
 

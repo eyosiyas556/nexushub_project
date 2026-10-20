@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
 import { Trash2 } from "lucide-react";
+import socket from "../../services/socket";
 
 export default function StaffDashboard() {
   const [stats, setStats] = useState({
@@ -39,6 +40,17 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Real-time: re-fetch whenever any relevant data changes
+    socket.on("dashboard_updated", fetchDashboardData);
+    socket.on("requests_updated", fetchDashboardData);
+    socket.on("resources_updated", fetchDashboardData);
+
+    return () => {
+      socket.off("dashboard_updated", fetchDashboardData);
+      socket.off("requests_updated", fetchDashboardData);
+      socket.off("resources_updated", fetchDashboardData);
+    };
   }, []);
 
   const handleReleaseResource = async (resourceCode) => {

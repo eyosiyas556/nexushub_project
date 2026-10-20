@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const verifyToken = require("../middleware/authMiddleware");
+const { getIO } = require("../socket");
 
 // 1. Get All Resources (with search, filters, and accurate current user holder info)
 router.get("/", verifyToken, async (req, res) => {
@@ -70,6 +71,9 @@ router.post("/", verifyToken, async (req, res) => {
       `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
       ["CREATED", "Resource", `Added new resource: ${newResource.name} (${newResource.category})`]
     );
+
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
 
     res.status(201).json({
       message: "Resource added successfully!",
@@ -141,6 +145,9 @@ router.put("/:code/release", verifyToken, async (req, res) => {
       );
     }
 
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
+
     res.json({ success: true, message: "Resource released successfully." });
   } catch (err) {
     console.error("Release Resource Error:", err.message);
@@ -177,6 +184,9 @@ router.put("/:id", verifyToken, async (req, res) => {
       ["UPDATED", "Resource", `Updated resource details: ${updatedResource.name} (${updatedResource.category})`]
     );
 
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
+
     res.json({
       message: "Resource updated successfully!",
       resource: updatedResource,
@@ -207,6 +217,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
       `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
       ["DELETED", "Resource", `Removed resource: ${deletedResource.name} (${deletedResource.category})`]
     );
+
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
 
     res.json({
       message: `Resource ${deletedResource.name} deleted successfully!`,

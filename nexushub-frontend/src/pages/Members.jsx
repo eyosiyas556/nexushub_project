@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import socket from "../services/socket";
 
 export default function Members() {
   const [members, setMembers] = useState([]);
@@ -41,6 +42,13 @@ export default function Members() {
 
   useEffect(() => {
     fetchMembers();
+
+    // Real-time: re-fetch whenever members data changes
+    socket.on("members_updated", fetchMembers);
+
+    return () => {
+      socket.off("members_updated", fetchMembers);
+    };
   }, []);
 
   const handleInputChange = (e) => {

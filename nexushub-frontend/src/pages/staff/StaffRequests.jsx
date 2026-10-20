@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
+import socket from "../../services/socket";
 
 export default function StaffWorkRequests() {
   const [requests, setRequests] = useState([]);
@@ -56,6 +57,15 @@ export default function StaffWorkRequests() {
   useEffect(() => {
     fetchWorkRequests();
     fetchResources();
+
+    // Real-time: re-fetch whenever requests data changes
+    socket.on("requests_updated", fetchWorkRequests);
+    socket.on("resources_updated", fetchResources);
+
+    return () => {
+      socket.off("requests_updated", fetchWorkRequests);
+      socket.off("resources_updated", fetchResources);
+    };
   }, []);
 
   const handleCreateSubmit = async (e) => {

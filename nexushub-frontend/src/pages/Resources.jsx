@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import socket from "../services/socket";
 
 export default function Resources() {
   const [resources, setResources] = useState([]);
@@ -51,6 +52,13 @@ export default function Resources() {
 
   useEffect(() => {
     fetchResources();
+
+    // Real-time: re-fetch whenever resources data changes
+    socket.on("resources_updated", fetchResources);
+
+    return () => {
+      socket.off("resources_updated", fetchResources);
+    };
   }, []);
 
   const handleInputChange = (e) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
+import socket from "../../services/socket";
 
 export default function StaffResources() {
   const [resources, setResources] = useState([]);
@@ -56,6 +57,13 @@ export default function StaffResources() {
   useEffect(() => {
     fetchResources();
     loadCurrentUserInfo();
+
+    // Real-time: re-fetch whenever resources data changes
+    socket.on("resources_updated", fetchResources);
+
+    return () => {
+      socket.off("resources_updated", fetchResources);
+    };
   }, []);
 
   const handleReleaseResource = async (resourceCode) => {

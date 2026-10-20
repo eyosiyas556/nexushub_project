@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../config/db');
 const verifyToken = require('../../middleware/authMiddleware');
+const { getIO } = require('../../socket');
 
 // Helper function to securely create system notifications
 const sendNotification = async (targetUserId, title, message) => {
@@ -111,6 +112,10 @@ router.put("/:code/release", verifyToken, async (req, res) => {
         `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available for request!`
       );
     }
+
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
 
     res.json({ success: true, message: "Resource released successfully." });
   } catch (err) {

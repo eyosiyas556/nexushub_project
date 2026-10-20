@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import socket from "../services/socket";
 
 export default function Requests() {
   const [requests, setRequests] = useState([]);
@@ -43,6 +44,13 @@ export default function Requests() {
 
   useEffect(() => {
     fetchRequests();
+
+    // Real-time: re-fetch whenever any request changes
+    socket.on("requests_updated", fetchRequests);
+
+    return () => {
+      socket.off("requests_updated", fetchRequests);
+    };
   }, []);
 
   const fetchAssignableStaff = async (requestId) => {

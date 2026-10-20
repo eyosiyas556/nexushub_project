@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const verifyToken = require('../middleware/authMiddleware');
+const { getIO } = require('../socket');
 
 router.use(verifyToken);
 
@@ -12,6 +13,8 @@ const sendNotification = async (targetUserId, title, message) => {
       'INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)',
       [targetUserId, title, message]
     );
+    // Real-time: push new notification to all connected clients immediately
+    getIO().emit('notifications_updated');
   } catch (err) {
     console.error("Failed to create notification:", err.message);
   }
@@ -195,6 +198,10 @@ router.put('/:id', async (req, res) => {
       ]
     );
 
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('dashboard_updated');
+
     res.json({
       message: 'Work request updated successfully!',
       request: updatedRequest,
@@ -248,6 +255,10 @@ router.delete('/:id', async (req, res) => {
         `Deleted work request #${deletedRequest.id}`
       ]
     );
+
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ message: 'Work request deleted successfully!' });
   } catch (err) {

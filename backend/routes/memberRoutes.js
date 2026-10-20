@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const verifyToken = require("../middleware/authMiddleware");
+const { getIO } = require("../socket");
 
 // Protect all member routes with token verification
 router.use(verifyToken);
@@ -58,6 +59,9 @@ router.post("/", async (req, res) => {
       "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
       ["CREATED", "Team Member", `Created new team member: ${newMember.name} (${newMember.role})`]
     );
+
+    // Real-time: notify all clients that members list changed
+    getIO().emit('members_updated');
 
     res.status(201).json(newMember);
   } catch (err) {
@@ -129,6 +133,9 @@ router.put("/:id", async (req, res) => {
       ["UPDATED", "Team Member", `Updated team member details: ${updatedMember.name} (${updatedMember.role})`]
     );
 
+    // Real-time: notify all clients
+    getIO().emit('members_updated');
+
     res.json(updatedMember);
   } catch (err) {
     console.error("Error updating member:", err.message);
@@ -166,6 +173,9 @@ router.delete("/:id", async (req, res) => {
       "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
       ["DELETED", "Team Member", `Removed team member: ${memberName} (${memberRole})`]
     );
+
+    // Real-time: notify all clients
+    getIO().emit('members_updated');
 
     res.json({ message: "Member deleted successfully" });
   } catch (err) {

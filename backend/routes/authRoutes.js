@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const verifyToken = require('../middleware/authMiddleware');
+const { isAccountActive } = require('../utils/accountStatus');
 const multer = require('multer');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -76,6 +77,10 @@ router.post('/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.rows[0].password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid email or password.' });
+        }
+
+        if (!isAccountActive(user.rows[0].status)) {
+            return res.status(403).json({ error: 'Account is inactive. Contact an administrator.' });
         }
 
         const token = jwt.sign(

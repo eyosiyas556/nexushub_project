@@ -24,10 +24,11 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use('/uploads', express.static(uploadDir));
 
-// Health check endpoint
-app.get('/', (req, res) => {
-    res.json({ message: 'NexusHub API is running smoothly!' });
-});
+// Serve built frontend static files (React SPA)
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+}
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');
@@ -57,6 +58,13 @@ app.use('/api/staff/requests', staffRequestRoutes);
 app.use('/api/work-requests', staffRequestRoutes); // Alias for work-requests compatibility
 app.use('/api/staff', changePasswordRouter);
 app.use('/api/staff', staffDashboardRoutes);
+
+// SPA catch-all: serve index.html for any non-API route so React Router works on refresh
+if (fs.existsSync(distPath)) {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
 
 // Start server (use http server, not app.listen — required for Socket.io)
 server.listen(PORT, () => {

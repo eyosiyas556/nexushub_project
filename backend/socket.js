@@ -28,4 +28,17 @@ const getIO = () => {
   return io;
 };
 
-module.exports = { init, getIO };
+// Safe emit helper that never throws or crashes request handlers
+const emitEvent = (event, data) => {
+  try {
+    if (io) {
+      io.emit(event, data);
+    } else {
+      console.warn(`[Socket] Cannot emit '${event}' because io is not initialized yet.`);
+    }
+  } catch (err) {
+    console.error(`[Socket] Failed to emit '${event}':`, err.message);
+  }
+};
+
+module.exports = { init, getIO, emitEvent };

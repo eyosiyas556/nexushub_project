@@ -200,6 +200,8 @@ router.put('/:id', async (req, res) => {
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.json({
@@ -258,6 +260,8 @@ router.delete('/:id', async (req, res) => {
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.json({ message: 'Work request deleted successfully!' });

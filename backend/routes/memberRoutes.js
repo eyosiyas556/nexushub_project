@@ -62,6 +62,7 @@ router.post("/", async (req, res) => {
 
     // Real-time: notify all clients that members list changed
     getIO().emit('members_updated');
+    getIO().emit('dashboard_updated');
 
     res.status(201).json(newMember);
   } catch (err) {
@@ -135,6 +136,7 @@ router.put("/:id", async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('members_updated');
+    getIO().emit('dashboard_updated');
 
     res.json(updatedMember);
   } catch (err) {
@@ -176,6 +178,7 @@ router.delete("/:id", async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('members_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ message: "Member deleted successfully" });
   } catch (err) {

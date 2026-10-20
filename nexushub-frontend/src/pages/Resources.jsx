@@ -53,11 +53,13 @@ export default function Resources() {
   useEffect(() => {
     fetchResources();
 
-    // Real-time: re-fetch whenever resources data changes
+    // Real-time: re-fetch whenever resources or requests change
     socket.on("resources_updated", fetchResources);
+    socket.on("requests_updated", fetchResources);
 
     return () => {
       socket.off("resources_updated", fetchResources);
+      socket.off("requests_updated", fetchResources);
     };
   }, []);
 

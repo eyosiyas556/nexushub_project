@@ -45,11 +45,15 @@ export default function Requests() {
   useEffect(() => {
     fetchRequests();
 
-    // Real-time: re-fetch whenever any request changes
+    // Real-time: re-fetch whenever any request or related data changes
     socket.on("requests_updated", fetchRequests);
+    socket.on("members_updated", fetchRequests);
+    socket.on("resources_updated", fetchRequests);
 
     return () => {
       socket.off("requests_updated", fetchRequests);
+      socket.off("members_updated", fetchRequests);
+      socket.off("resources_updated", fetchRequests);
     };
   }, []);
 

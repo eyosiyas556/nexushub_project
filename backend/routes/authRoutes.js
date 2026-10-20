@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const verifyToken = require('../middleware/authMiddleware');
 const { isAccountActive } = require('../utils/accountStatus');
+const { getIO } = require('../socket');
 const multer = require('multer');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -232,6 +233,10 @@ router.put('/profile', verifyToken, handleAvatarUpload, async (req, res) => {
             [name, email, phone, department, finalRole, finalStatus, picturePath, userId]
         );
 
+        // Real-time: notify all clients
+        getIO().emit('members_updated');
+        getIO().emit('dashboard_updated');
+
         res.json({
             message: 'Profile updated successfully!',
             user: updateResult.rows[0]
@@ -263,6 +268,10 @@ router.put('/profile-picture', verifyToken, handleAvatarUpload, async (req, res)
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found.' });
         }
+
+        // Real-time: notify all clients
+        getIO().emit('members_updated');
+        getIO().emit('dashboard_updated');
 
         res.json({
             message: 'Profile picture updated successfully!',

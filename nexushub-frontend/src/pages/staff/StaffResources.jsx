@@ -58,11 +58,13 @@ export default function StaffResources() {
     fetchResources();
     loadCurrentUserInfo();
 
-    // Real-time: re-fetch whenever resources data changes
+    // Real-time: re-fetch whenever resources or requests data changes
     socket.on("resources_updated", fetchResources);
+    socket.on("requests_updated", fetchResources);
 
     return () => {
       socket.off("resources_updated", fetchResources);
+      socket.off("requests_updated", fetchResources);
     };
   }, []);
 

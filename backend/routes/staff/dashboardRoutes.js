@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../config/db");
 const verifyToken = require("../../middleware/authMiddleware");
+const { getIO } = require("../../socket");
 
 // DELETE /api/staff/requests - Clear historical work requests for the logged-in staff
 router.delete("/requests", verifyToken, async (req, res) => {
@@ -32,6 +33,10 @@ router.delete("/requests", verifyToken, async (req, res) => {
       [staffName, staffEmail, String(staffId), `%${firstName}%`, staffId]
     );
 
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('dashboard_updated');
+
     res.json({ success: true, message: "Work requests cleared successfully." });
   } catch (err) {
     console.error("Clear Staff Requests Error:", err.message);
@@ -51,6 +56,9 @@ router.delete("/activities", verifyToken, async (req, res) => {
       `DELETE FROM activity_logs WHERE user_id = $1 OR description ILIKE $2`,
       [staffId, `%${staffName}%`]
     );
+
+    // Real-time: broadcast to all clients
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Activity history cleared successfully." });
   } catch (err) {
@@ -122,6 +130,12 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
         ]
       );
     }
+
+    // Real-time: notify all clients
+    getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Resource released successfully." });
   } catch (err) {

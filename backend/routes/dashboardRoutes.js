@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const verifyToken = require("../middleware/authMiddleware");
+const { getIO } = require("../socket");
 
 // GET /api/dashboard/summary - Admin Operations Dashboard Data
 router.get("/summary", verifyToken, async (req, res) => {
@@ -142,6 +143,9 @@ router.delete("/activities", verifyToken, async (req, res) => {
         "Admin cleared all recent activity logs.",
       ],
     );
+
+    // Real-time: broadcast to all clients
+    getIO().emit('dashboard_updated');
 
     res.json({
       success: true,

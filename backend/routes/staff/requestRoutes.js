@@ -176,6 +176,8 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.json({ success: true, data: updatedReq });
@@ -258,6 +260,8 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.status(201).json({ 
@@ -331,6 +335,8 @@ router.put('/:id', verifyToken, async (req, res) => {
 
       // Real-time: broadcast to all clients
       getIO().emit('requests_updated');
+      getIO().emit('resources_updated');
+      getIO().emit('dashboard_updated');
 
       return res.json({ success: true, message: 'Request updated successfully', data: rows[0] });
     }
@@ -373,6 +379,12 @@ router.put('/:id', verifyToken, async (req, res) => {
         `Your request (${updatedReq.request_number}) status has been updated to: ${finalStatus}`
       );
     }
+
+    // Real-time: broadcast to all clients
+    getIO().emit('requests_updated');
+    getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Work request updated successfully", data: updatedReq });
   } catch (err) {
@@ -454,6 +466,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
     getIO().emit('resources_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: 'Work request deleted and resource successfully released.' });

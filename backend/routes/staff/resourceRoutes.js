@@ -11,6 +11,7 @@ const sendNotification = async (targetUserId, title, message) => {
       'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
       [targetUserId, title, message]
     );
+    getIO().emit('notifications_updated');
     console.log(`[SUCCESS] Notification sent to User ID: ${targetUserId}`);
   } catch (err) {
     console.error("Failed to create notification:", err.message);
@@ -116,6 +117,8 @@ router.put("/:code/release", verifyToken, async (req, res) => {
     // Real-time: notify all clients
     getIO().emit('resources_updated');
     getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Resource released successfully." });
   } catch (err) {

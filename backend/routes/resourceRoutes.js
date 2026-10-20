@@ -74,6 +74,9 @@ router.post("/", verifyToken, async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.status(201).json({
       message: "Resource added successfully!",
@@ -147,6 +150,9 @@ router.put("/:code/release", verifyToken, async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Resource released successfully." });
   } catch (err) {
@@ -186,6 +192,9 @@ router.put("/:id", verifyToken, async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({
       message: "Resource updated successfully!",
@@ -220,6 +229,9 @@ router.delete("/:id", verifyToken, async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
+    getIO().emit('requests_updated');
+    getIO().emit('notifications_updated');
+    getIO().emit('dashboard_updated');
 
     res.json({
       message: `Resource ${deletedResource.name} deleted successfully!`,

@@ -128,6 +128,16 @@ router.put("/:id", async (req, res) => {
 
     const updatedMember = updatedMemberResult.rows[0];
 
+    // NOTIFY STAFF MEMBER: Admin updated their profile/role/status
+    await pool.query(
+      `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
+      [
+        id,
+        "Account Profile Updated",
+        `Your staff profile has been updated by an Administrator (Department: ${updatedMember.department}, Role: ${updatedMember.role}, Status: ${updatedMember.status}).`
+      ]
+    );
+
     // LOG ACTIVITY: Updated member
     await pool.query(
       "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
@@ -136,6 +146,7 @@ router.put("/:id", async (req, res) => {
 
     // Real-time: notify all clients
     getIO().emit('members_updated');
+    getIO().emit('notifications_updated');
     getIO().emit('dashboard_updated');
 
     res.json(updatedMember);

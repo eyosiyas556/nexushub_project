@@ -1,10 +1,16 @@
+import { TablePageSkeleton } from "../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import socket from "../services/socket";
+import { Eye, EditPencil, Trash, Plus } from "iconoir-react";
+import ConfirmationModal from "../components/ConfirmationModal";
+import { getCachedData, setCachedData } from "../services/cache";
 
 export default function Members() {
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedData("admin_members");
+  const [members, setMembers] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,7 +38,9 @@ export default function Members() {
   const fetchMembers = async () => {
     try {
       const response = await API.get("/members");
-      setMembers(response.data || []);
+      const data = response.data || [];
+      setMembers(data);
+      setCachedData("admin_members", data);
     } catch (err) {
       console.error("Failed to fetch members:", err);
     } finally {
@@ -93,15 +101,15 @@ export default function Members() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this team member?")) {
-      try {
-        await API.delete(`/members/${id}`);
-        fetchMembers();
-      } catch (err) {
-        console.error("Failed to delete member:", err);
-        alert("Error deleting member.");
-      }
+  const executeDeleteMember = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await API.delete(`/members/${deleteConfirmId}`);
+      fetchMembers();
+    } catch (err) {
+      console.error("Failed to delete member:", err);
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -140,13 +148,7 @@ export default function Members() {
   });
 
   if (loading) {
-    return (
-      <div className="h-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]">
-        <p className="text-sm font-medium animate-pulse">
-          Loading team directory...
-        </p>
-      </div>
-    );
+    return <TablePageSkeleton titleWidth="w-56" hasCreateButton={true} />;
   }
 
   return (
@@ -175,18 +177,16 @@ export default function Members() {
               });
               setIsAddModalOpen(true);
             }}
-            className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#000000] text-white text-xs font-semibold rounded-xl shadow-sm transition duration-200 flex items-center justify-center gap-2 self-start sm:self-auto w-full sm:w-auto"
+            className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#000000] text-white text-xs font-bold rounded-xl shadow-sm transition duration-200 flex items-center justify-center gap-2 self-start sm:self-auto w-full sm:w-auto cursor-pointer"
           >
-            <span>➕</span> Add New Member
+            <Plus className="w-4 h-4 mr-1" /> Add New Member
           </button>
         </div>
 
         {/* Search and Filters Bar */}
         <div className="bg-[#FFFFFF] border border-gray-100 p-4 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Search Directory
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Search Directory</label>
             <input
               type="text"
               placeholder="Search by name, email, or phone..."
@@ -197,9 +197,7 @@ export default function Members() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Department
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Department</label>
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
@@ -214,9 +212,7 @@ export default function Members() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Status
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -234,14 +230,14 @@ export default function Members() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-[#F8FAFC]/50 text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                  <th className="py-4 px-6">Name</th>
-                  <th className="py-4 px-6">Email</th>
-                  <th className="py-4 px-6">Phone</th>
-                  <th className="py-4 px-6">Department</th>
-                  <th className="py-4 px-6">Role</th>
-                  <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Name</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Email</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Phone</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Department</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Role</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status</th>
+                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -257,51 +253,69 @@ export default function Members() {
                       key={member.id}
                       className="hover:bg-[#F8FAFC]/55 transition"
                     >
-                      <td className="py-4 px-6 font-semibold text-[#0F172A]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {member.name}
                       </td>
-                      <td className="py-4 px-6 text-[#64748B]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {member.email}
                       </td>
-                      <td className="py-4 px-6 text-[#64748B]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {member.phone || "N/A"}
                       </td>
-                      <td className="py-4 px-6 text-[#0F172A]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {member.department}
                       </td>
-                      <td className="py-4 px-6 text-[#64748B]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {member.role || "Staff"}
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 font-medium">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                             member.status === "Active"
-                              ? "bg-[#16A34A]/10 text-[#16A34A]"
-                              : "bg-gray-100 text-[#64748B]"
+                              ? "bg-[#E6F4EA] text-[#137333]"
+                              : "bg-[#F1F3F4] text-[#5F6368]"
                           }`}
                         >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              member.status === "Active"
+                                ? "bg-[#137333]"
+                                : "bg-[#5F6368]"
+                            }`}
+                          />
                           {member.status}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-right space-x-3">
-                        <button
-                          onClick={() => openViewModal(member)}
-                          className="text-[#0F172A] hover:underline font-medium"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => openEditModal(member)}
-                          className="text-[#D97706] hover:underline font-medium"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(member.id)}
-                          className="text-[#DC2626] hover:underline font-medium"
-                        >
-                          Delete
-                        </button>
+                      <td className="py-3 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openViewModal(member)}
+                            title="View member details"
+                            aria-label="View member"
+                            className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(member)}
+                            title="Edit member"
+                            aria-label="Edit member"
+                            className="p-1 text-amber-600 hover:text-amber-700 transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <EditPencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(member.id)}
+                            title="Delete member"
+                            aria-label="Delete member"
+                            className="p-1 text-rose-600 hover:text-rose-700 transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <Trash className="w-4 h-4 text-rose-600" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -321,7 +335,7 @@ export default function Members() {
             </h3>
             <form onSubmit={handleAddSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Full Name
                 </label>
                 <input
@@ -334,7 +348,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Email Address
                 </label>
                 <input
@@ -347,7 +361,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Phone Number
                 </label>
                 <input
@@ -359,7 +373,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Temporary Password
                 </label>
                 <input
@@ -373,7 +387,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Department
                 </label>
                 <select
@@ -391,7 +405,7 @@ export default function Members() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Role
                 </label>
                 <select
@@ -408,7 +422,7 @@ export default function Members() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Status
                 </label>
                 <select
@@ -425,13 +439,13 @@ export default function Members() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-[#64748B] bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                  className="px-4 py-2 text-xs font-bold text-[#0F172A] bg-gray-100 rounded-xl hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
                 >
                   Save Member
                 </button>
@@ -450,7 +464,7 @@ export default function Members() {
             </h3>
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Full Name
                 </label>
                 <input
@@ -463,7 +477,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Email Address
                 </label>
                 <input
@@ -476,7 +490,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Phone Number
                 </label>
                 <input
@@ -488,7 +502,7 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Department
                 </label>
                 <select
@@ -505,7 +519,7 @@ export default function Members() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Role
                 </label>
                 <select
@@ -522,7 +536,7 @@ export default function Members() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">
+                <label className="block text-[11px] font-bold text-[#0F172A] uppercase mb-1">
                   Status
                 </label>
                 <select
@@ -539,13 +553,13 @@ export default function Members() {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-[#64748B] bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                  className="px-4 py-2 text-xs font-bold text-[#0F172A] bg-gray-100 rounded-xl hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
                 >
                   Update Member
                 </button>
@@ -581,15 +595,30 @@ export default function Members() {
                 <strong className="text-[#64748B]">Role:</strong>{" "}
                 {selectedMember.role || "Staff"}
               </p>
-              <p>
-                <strong className="text-[#64748B]">Status:</strong>{" "}
-                {selectedMember.status}
-              </p>
+              <div className="flex items-center gap-2">
+                <strong className="text-[#64748B]">Status:</strong>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedMember.status === "Active"
+                      ? "bg-[#E6F4EA] text-[#137333]"
+                      : "bg-[#F1F3F4] text-[#5F6368]"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      selectedMember.status === "Active"
+                        ? "bg-[#137333]"
+                        : "bg-[#5F6368]"
+                    }`}
+                  />
+                  {selectedMember.status}
+                </span>
+              </div>
             </div>
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setIsViewModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition"
               >
                 Close
               </button>
@@ -597,6 +626,17 @@ export default function Members() {
           </div>
         </div>
       )}
+
+      {/* Modern, Eye-Friendly Frontend Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteConfirmId)}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={executeDeleteMember}
+        title="Delete Team Member"
+        message="Are you sure you want to remove this team member? This action cannot be undone."
+        confirmText="Delete Member"
+        type="danger"
+      />
     </div>
   );
 }

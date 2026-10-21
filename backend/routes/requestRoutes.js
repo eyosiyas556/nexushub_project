@@ -186,6 +186,12 @@ router.put('/:id', async (req, res) => {
           `You have been assigned to request ${updatedRequest.request_number}: "${updatedRequest.title}"`
         );
       }
+    } else if (priority && priority !== currentRequest.priority && updatedRequest.user_id) {
+      await sendNotification(
+        updatedRequest.user_id,
+        'Request Priority Updated',
+        `The priority for request ${updatedRequest.request_number} ("${updatedRequest.title}") was updated to: ${priority}`
+      );
     }
 
     // 6. LOG ACTIVITY: Updated work request

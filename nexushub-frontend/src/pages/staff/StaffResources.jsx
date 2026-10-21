@@ -1,12 +1,18 @@
+import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
 import socket from "../../services/socket";
+import { Eye, LogOut } from "iconoir-react";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function StaffResources() {
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedData("staff_resources");
+  const [resources, setResources] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
   const [releasingCode, setReleasingCode] = useState(null);
   const [currentUserName, setCurrentUserName] = useState("");
+  const [confirmReleaseCode, setConfirmReleaseCode] = useState(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +52,9 @@ export default function StaffResources() {
   const fetchResources = async () => {
     try {
       const response = await API.get("/staff/resources");
-      setResources(response.data.resources || response.data || []);
+      const data = response.data.resources || response.data || [];
+      setResources(data);
+      setCachedData("staff_resources", data);
     } catch (err) {
       console.error("Failed to fetch resources:", err);
     } finally {
@@ -68,13 +76,9 @@ export default function StaffResources() {
     };
   }, []);
 
-  const handleReleaseResource = async (resourceCode) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to release resource ${resourceCode}? This will return it to available inventory.`
-      )
-    )
-      return;
+  const handleConfirmRelease = async () => {
+    if (!confirmReleaseCode) return;
+    const resourceCode = confirmReleaseCode;
 
     setReleasingCode(resourceCode);
     try {
@@ -85,9 +89,9 @@ export default function StaffResources() {
       }
     } catch (err) {
       console.error("Failed to release resource:", err);
-      alert(err.response?.data?.error || "Failed to release resource.");
     } finally {
       setReleasingCode(null);
+      setConfirmReleaseCode(null);
     }
   };
 
@@ -109,11 +113,7 @@ export default function StaffResources() {
   });
 
   if (loading) {
-    return (
-      <div className="h-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]">
-        <p className="text-sm font-medium animate-pulse">Loading resources...</p>
-      </div>
-    );
+    return <TablePageSkeleton titleWidth="w-72" hasCreateButton={false} />;
   }
 
   return (
@@ -134,7 +134,7 @@ export default function StaffResources() {
         {/* Search & Filter Bar */}
         <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Search Resources
             </label>
             <input
@@ -147,7 +147,7 @@ export default function StaffResources() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Filter by Category
             </label>
             <select
@@ -165,7 +165,7 @@ export default function StaffResources() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Filter by Status
             </label>
             <select
@@ -188,12 +188,12 @@ export default function StaffResources() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-[#F8FAFC]/50 text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                  <th className="py-4 px-6">Resource Code</th>
-                  <th className="py-4 px-6">Resource Name</th>
-                  <th className="py-4 px-6">Category</th>
-                  <th className="py-4 px-6">Status & Holder</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Code</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Name</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status & Holder</th>
+                  <th className="py-4 px-6 text-right w-36 font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -213,55 +213,75 @@ export default function StaffResources() {
                         currentUserName.toLowerCase().trim();
 
                     return (
-                      <tr key={res.id} className="hover:bg-[#F8FAFC]/50 transition">
-                        <td className="py-4 px-6 font-mono font-medium text-[#64748B]">
+                      <tr key={res.id} className="hover:bg-[#F8FAFC]/55 transition">
+                        <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                           {res.resource_code}
                         </td>
-                        <td className="py-4 px-6 font-semibold text-[#0F172A]">
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
                           {res.name}
                         </td>
-                        <td className="py-4 px-6">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-[#0F172A]">
-                            {res.category}
-                          </span>
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                          {res.category}
                         </td>
                         <td className="py-4 px-6 space-y-1">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                              res.status?.toLowerCase() === "available"
-                                ? "bg-green-50 text-green-600"
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              res.status === "Available"
+                                ? "bg-[#E6F4EA] text-[#137333]"
                                 : isInUse
-                                ? "bg-amber-50 text-amber-600"
-                                : res.status?.toLowerCase() === "maintenance"
-                                ? "bg-purple-50 text-purple-600"
-                                : "bg-gray-100 text-gray-500"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                : res.status === "Maintenance"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
+                                : "bg-[#F1F3F4] text-[#5F6368]"
                             }`}
                           >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                res.status === "Available"
+                                  ? "bg-[#137333]"
+                                  : isInUse
+                                  ? "bg-[#1A73E8]"
+                                  : res.status === "Maintenance"
+                                  ? "bg-[#B06000]"
+                                  : "bg-[#5F6368]"
+                              }`}
+                            />
                             {res.status}
                           </span>
                           {isInUse && res.current_user_name && (
-                            <p className="text-[10px] text-blue-600 font-medium">
-                              👤 Used by: <strong>{res.current_user_name}</strong>
-                            </p>
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                              <span>👤 Used by: <strong className="text-[#0F172A] font-medium">{res.current_user_name}</strong></span>
+                              {isAssignedToMe && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-[#0F172A] text-[10px] font-bold border border-slate-200">
+                                  You
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
-                        <td className="py-4 px-6 text-right space-x-3">
-                          {/* Show Release button ONLY if the resource is in use AND assigned to this specific staff member */}
-                          {isAssignedToMe && (
+                        <td className="py-3 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* Show Release button ONLY if the resource is in use AND assigned to this specific staff member */}
+                            {isAssignedToMe && (
+                              <button
+                                onClick={() => setConfirmReleaseCode(res.resource_code)}
+                                disabled={releasingCode === res.resource_code}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold transition shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
+                              >
+                                <LogOut className="w-3.5 h-3.5" />
+                                <span>{releasingCode === res.resource_code ? "Releasing..." : "Release"}</span>
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleReleaseResource(res.resource_code)}
-                              disabled={releasingCode === res.resource_code}
-                              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-semibold transition cursor-pointer disabled:opacity-50 shadow-sm"
+                              type="button"
+                              onClick={() => openViewModal(res)}
+                              title="View resource details"
+                              aria-label="View resource"
+                              className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
                             >
-                              {releasingCode === res.resource_code ? "Releasing..." : "Release"}
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => openViewModal(res)}
-                            className="text-[#0F172A] hover:underline font-medium cursor-pointer"
-                          >
-                            View Details
-                          </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -299,10 +319,33 @@ export default function StaffResources() {
                   <strong className="text-[#64748B]">Category:</strong>{" "}
                   {selectedResource.category}
                 </p>
-                <p>
-                  <strong className="text-[#64748B]">Status:</strong>{" "}
-                  {selectedResource.status}
-                </p>
+                <div className="flex items-center gap-2">
+                  <strong className="text-[#64748B]">Status:</strong>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedResource.status === "Available"
+                        ? "bg-[#E6F4EA] text-[#137333]"
+                        : isInUse
+                        ? "bg-[#E8F0FE] text-[#1A73E8]"
+                        : selectedResource.status === "Maintenance"
+                        ? "bg-[#FEF7E0] text-[#B06000]"
+                        : "bg-[#F1F3F4] text-[#5F6368]"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        selectedResource.status === "Available"
+                          ? "bg-[#137333]"
+                          : isInUse
+                          ? "bg-[#1A73E8]"
+                          : selectedResource.status === "Maintenance"
+                          ? "bg-[#B06000]"
+                          : "bg-[#5F6368]"
+                      }`}
+                    />
+                    {selectedResource.status}
+                  </span>
+                </div>
                 {isInUse && selectedResource.current_user_name && (
                   <p className="p-2 bg-blue-50 text-blue-700 rounded-lg">
                     <strong className="font-bold">Currently Used By:</strong> {selectedResource.current_user_name}
@@ -316,18 +359,19 @@ export default function StaffResources() {
               <div className="flex items-center justify-between pt-2">
                 {isAssignedToMe ? (
                   <button
-                    onClick={() => handleReleaseResource(selectedResource.resource_code)}
+                    onClick={() => setConfirmReleaseCode(selectedResource.resource_code)}
                     disabled={releasingCode === selectedResource.resource_code}
-                    className="px-3.5 py-2 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition cursor-pointer disabled:opacity-50 shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0F172A] hover:bg-slate-800 rounded-xl transition cursor-pointer disabled:opacity-50 shadow-xs active:scale-95"
                   >
-                    {releasingCode === selectedResource.resource_code ? "Releasing..." : "Release Resource"}
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{releasingCode === selectedResource.resource_code ? "Releasing..." : "Release Resource"}</span>
                   </button>
                 ) : (
                   <div></div>
                 )}
                 <button
                   onClick={() => setIsViewModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#000000] transition cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
                 >
                   Close
                 </button>
@@ -336,6 +380,18 @@ export default function StaffResources() {
           </div>
         );
       })()}
+
+      {/* Modern, Eye-Friendly In-App Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(confirmReleaseCode)}
+        onClose={() => setConfirmReleaseCode(null)}
+        onConfirm={handleConfirmRelease}
+        title="Release Resource"
+        message={`Are you sure you want to release resource ${confirmReleaseCode}? It will be returned to the shared inventory.`}
+        confirmText="Release Resource"
+        type="release"
+        loading={Boolean(releasingCode)}
+      />
     </div>
   );
 }

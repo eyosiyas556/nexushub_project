@@ -7,68 +7,56 @@ const { getIO } = require("../socket");
 // GET /api/dashboard/summary - Admin Operations Dashboard Data
 router.get("/summary", verifyToken, async (req, res) => {
   try {
-    // 1. Fetch total users & active members from 'users'
-    const usersRes = await pool.query("SELECT * FROM users");
-    const users = usersRes.rows || [];
-    const totalMembers = users.length;
-    const activeMembers =
-      users.filter((u) => (u.status || "").toLowerCase() === "active").length ||
-      totalMembers;
+    // Run optimized database queries concurrently with Promise.all
+    const [usersStatsRes, requestsStatsRes, resourcesStatsRes, logsRes] = await Promise.all([
+      // 1. Efficient user metrics
+      pool.query(`
+        SELECT 
+          COUNT(*)::int AS total_members,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(status, '')) = 'active')::int AS active_members
+        FROM users
+      `),
+      // 2. Efficient work request metrics
+      pool.query(`
+        SELECT 
+          COUNT(*)::int AS total_requests,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(status, '')) = 'pending')::int AS pending_requests,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(status, '')) = 'in progress')::int AS in_progress_requests,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(status, '')) IN ('resolved', 'closed', 'completed', 'approved'))::int AS completed_requests
+        FROM work_requests
+      `),
+      // 3. Efficient resource category metrics
+      pool.query(`
+        SELECT 
+          COUNT(*)::int AS total_resources,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(category, '')) ILIKE '%laptop%' OR LOWER(COALESCE(category, '')) ILIKE '%desktop%' OR LOWER(COALESCE(category, '')) ILIKE '%projector%')::int AS laptops_count,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(category, '')) ILIKE '%equipment%' OR LOWER(COALESCE(category, '')) ILIKE '%printer%' OR LOWER(COALESCE(category, '')) ILIKE '%vehicle%' OR LOWER(COALESCE(category, '')) ILIKE '%meeting room%')::int AS equipment_count,
+          COUNT(*) FILTER (WHERE LOWER(COALESCE(category, '')) ILIKE '%furniture%')::int AS furniture_count
+        FROM resources
+      `),
+      // 4. Fetch last 10 activity logs
+      pool.query(
+        "SELECT id, entity_type, action, description, created_at FROM activity_logs ORDER BY id DESC LIMIT 10"
+      )
+    ]);
 
-    // 2. Fetch work requests from 'work_requests'
-    const reqRes = await pool.query("SELECT * FROM work_requests");
-    const requests = reqRes.rows || [];
-    const totalRequests = requests.length;
+    const uStats = usersStatsRes.rows[0] || {};
+    const totalMembers = uStats.total_members || 0;
+    const activeMembers = uStats.active_members || totalMembers;
 
-    const pendingRequests = requests.filter(
-      (r) => (r.status || "").toLowerCase() === "pending",
-    ).length;
-    const inProgressRequests = requests.filter(
-      (r) => (r.status || "").toLowerCase() === "in progress",
-    ).length;
+    const rStats = requestsStatsRes.rows[0] || {};
+    const totalRequests = rStats.total_requests || 0;
+    const pendingRequests = rStats.pending_requests || 0;
+    const inProgressRequests = rStats.in_progress_requests || 0;
+    const completedRequests = rStats.completed_requests || 0;
 
-    // Matches your work_requests CHECK constraint: ('Pending', 'In Progress', 'Resolved', 'Closed')
-    const completedRequests = requests.filter((r) => {
-      const s = (r.status || "").toLowerCase();
-      return ["resolved", "closed", "completed", "approved"].includes(s);
-    }).length;
+    const resStats = resourcesStatsRes.rows[0] || {};
+    const totalResources = resStats.total_resources || 0;
+    const laptopsCount = resStats.laptops_count || 0;
+    const equipmentCount = resStats.equipment_count || 0;
+    const furnitureCount = resStats.furniture_count || 0;
+    const otherCount = Math.max(0, totalResources - (laptopsCount + equipmentCount + furnitureCount));
 
-    // 3. Fetch resources from 'resources' and map categories
-    const resRes = await pool.query("SELECT * FROM resources");
-    const resources = resRes.rows || [];
-    const totalResources = resources.length;
-
-    let laptopsCount = 0;
-    let equipmentCount = 0;
-    let furnitureCount = 0;
-    let otherCount = 0;
-
-    resources.forEach((res) => {
-      const cat = (res.category || "").toLowerCase();
-      if (
-        cat.includes("laptop") ||
-        cat.includes("desktop") ||
-        cat.includes("projector")
-      ) {
-        laptopsCount++;
-      } else if (
-        cat.includes("equipment") ||
-        cat.includes("printer") ||
-        cat.includes("vehicle") ||
-        cat.includes("meeting room")
-      ) {
-        equipmentCount++;
-      } else if (cat.includes("furniture")) {
-        furnitureCount++;
-      } else {
-        otherCount++;
-      }
-    });
-
-    // 4. Fetch logs from 'activity_logs' with robust date validation
-    const logsRes = await pool.query(
-      "SELECT * FROM activity_logs ORDER BY id DESC LIMIT 10",
-    );
     const activities = (logsRes.rows || []).map((log) => {
       let validDate = new Date();
       if (log.created_at) {

@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 require('dotenv').config();
+const pool = require('./config/db');
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +17,16 @@ initSocket(server);
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Keep-alive & Health Check endpoint for uptime pingers (prevents Render & Neon cold-starts)
+app.get(['/health', '/api/health'], async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.status(200).json({ status: 'ok', uptime: Math.floor(process.uptime()), db: 'connected' });
+    } catch (err) {
+        res.status(200).json({ status: 'ok', uptime: Math.floor(process.uptime()), db: 'reconnecting' });
+    }
+});
 
 // Static uploads directory
 const uploadDir = path.join(__dirname, 'uploads');

@@ -1,11 +1,19 @@
+import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
 import socket from "../../services/socket";
+import { Eye, EditPencil, Trash } from "iconoir-react";
+import ConfirmationModal from "../../components/ConfirmationModal";
+import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function StaffWorkRequests() {
-  const [requests, setRequests] = useState([]);
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedRequests = getCachedData("staff_requests");
+  const cachedResources = getCachedData("system_resources");
+
+  const [requests, setRequests] = useState(cachedRequests || []);
+  const [resources, setResources] = useState(cachedResources || []);
+  const [loading, setLoading] = useState(!cachedRequests);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,7 +45,9 @@ export default function StaffWorkRequests() {
   const fetchWorkRequests = async () => {
     try {
       const response = await API.get("/staff/requests");
-      setRequests(response.data || []);
+      const data = response.data || [];
+      setRequests(data);
+      setCachedData("staff_requests", data);
     } catch (err) {
       console.error("Failed to fetch work requests:", err);
     } finally {
@@ -48,7 +58,9 @@ export default function StaffWorkRequests() {
   const fetchResources = async () => {
     try {
       const response = await API.get("/resources"); 
-      setResources(response.data || []);
+      const data = response.data || [];
+      setResources(data);
+      setCachedData("system_resources", data);
     } catch (err) {
       console.error("Failed to fetch system resources:", err);
     }
@@ -134,15 +146,18 @@ export default function StaffWorkRequests() {
     }
   };
 
-  const handleDeleteRequest = async (requestId) => {
-    if (!window.confirm("Are you sure you want to delete this work request?")) return;
+  const executeDeleteRequest = async () => {
+    if (!deleteConfirmId) return;
 
     try {
-      await API.delete(`/staff/requests/${requestId}`);
-      setRequests(requests.filter((req) => req.id !== requestId));
+      await API.delete(`/staff/requests/${deleteConfirmId}`);
+      const updated = requests.filter((req) => req.id !== deleteConfirmId);
+      setRequests(updated);
+      setCachedData("staff_requests", updated);
     } catch (err) {
       console.error("Failed to delete request:", err);
-      alert(err.response?.data?.error || "Failed to delete request.");
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -195,11 +210,7 @@ export default function StaffWorkRequests() {
   });
 
   if (loading) {
-    return (
-      <div className="h-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]">
-        <p className="text-sm font-medium animate-pulse">Loading work requests...</p>
-      </div>
-    );
+    return <TablePageSkeleton titleWidth="w-60" hasCreateButton={true} />;
   }
 
   return (
@@ -226,7 +237,7 @@ export default function StaffWorkRequests() {
         {/* Search & Filter Bar */}
         <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Search Requests
             </label>
             <input
@@ -239,7 +250,7 @@ export default function StaffWorkRequests() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Filter by Status
             </label>
             <select
@@ -262,13 +273,13 @@ export default function StaffWorkRequests() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-[#F8FAFC]/50 text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                  <th className="py-4 px-6">Request #</th>
-                  <th className="py-4 px-6">Title</th>
-                  <th className="py-4 px-6">Category</th>
-                  <th className="py-4 px-6">Priority</th>
-                  <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Request #</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Title</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Priority</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status</th>
+                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -286,71 +297,102 @@ export default function StaffWorkRequests() {
                       req.status?.toLowerCase() === "closed";
 
                     return (
-                      <tr key={req.id} className="hover:bg-[#F8FAFC]/50 transition">
-                        <td className="py-4 px-6 font-mono font-medium text-[#64748B]">
+                      <tr key={req.id} className="hover:bg-[#F8FAFC]/55 transition">
+                        <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                           {req.request_number}
                         </td>
-                        <td className="py-4 px-6 font-semibold text-[#0F172A]">
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
                           {req.title}
                         </td>
-                        <td className="py-4 px-6">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-[#0F172A]">
-                            {req.category}
-                          </span>
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                          {req.category}
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               req.priority === "Urgent"
-                                ? "bg-red-50 text-red-600"
+                                ? "bg-[#FCE8E6] text-[#C5221F]"
                                 : req.priority === "High"
-                                ? "bg-orange-50 text-orange-600"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
                                 : req.priority === "Medium"
-                                ? "bg-blue-50 text-blue-600"
-                                : "bg-gray-100 text-gray-500"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                : "bg-[#F1F3F4] text-[#5F6368]"
                             }`}
                           >
-                            {req.priority}
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                req.priority === "Urgent"
+                                  ? "bg-[#C5221F]"
+                                  : req.priority === "High"
+                                  ? "bg-[#B06000]"
+                                  : req.priority === "Medium"
+                                  ? "bg-[#1A73E8]"
+                                  : "bg-[#5F6368]"
+                              }`}
+                            />
+                            {req.priority || "Medium"}
                           </span>
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               req.status === "Completed" || req.status === "Resolved" || req.status === "Closed"
-                                ? "bg-green-50 text-green-600"
+                                ? "bg-[#E6F4EA] text-[#137333]"
                                 : req.status === "In Progress"
-                                ? "bg-amber-50 text-amber-600"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
                                 : req.status === "Pending"
-                                ? "bg-blue-50 text-blue-600"
-                                : "bg-red-50 text-red-600"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
+                                : "bg-[#FCE8E6] text-[#C5221F]"
                             }`}
                           >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                req.status === "Completed" || req.status === "Resolved" || req.status === "Closed"
+                                  ? "bg-[#137333]"
+                                  : req.status === "In Progress"
+                                  ? "bg-[#1A73E8]"
+                                  : req.status === "Pending"
+                                  ? "bg-[#B06000]"
+                                  : "bg-[#C5221F]"
+                              }`}
+                            />
                             {req.status}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-right space-x-2">
-                          {isPending && !isResolved && (
+                        <td className="py-3 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => openEditModal(req)}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[11px] font-semibold transition cursor-pointer"
+                              type="button"
+                              onClick={() => openViewModal(req)}
+                              title="View request details"
+                              aria-label="View request"
+                              className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
                             >
-                              Edit
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
 
-                          <button
-                            onClick={() => handleDeleteRequest(req.id)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[11px] font-semibold transition cursor-pointer"
-                          >
-                            Delete
-                          </button>
+                            {isPending && !isResolved && (
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(req)}
+                                title="Edit request"
+                                aria-label="Edit request"
+                                className="p-1 text-amber-600 hover:text-amber-700 transition cursor-pointer inline-flex items-center justify-center"
+                              >
+                                <EditPencil className="w-4 h-4" />
+                              </button>
+                            )}
 
-                          <button
-                            onClick={() => openViewModal(req)}
-                            className="text-[#0F172A] hover:underline font-medium cursor-pointer"
-                          >
-                            View Details
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmId(req.id)}
+                              title="Delete request"
+                              aria-label="Delete request"
+                              className="p-1 text-rose-600 hover:text-rose-700 transition cursor-pointer inline-flex items-center justify-center border-0 bg-transparent"
+                            >
+                              <Trash className="w-4 h-4 text-rose-600" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -576,9 +618,33 @@ export default function StaffWorkRequests() {
               <p>
                 <strong className="text-[#64748B]">Category:</strong> {selectedRequest.category}
               </p>
-              <p>
-                <strong className="text-[#64748B]">Priority:</strong> {selectedRequest.priority}
-              </p>
+              <div className="flex items-center gap-2">
+                <strong className="text-[#64748B]">Priority:</strong>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedRequest.priority === "Urgent"
+                      ? "bg-[#FCE8E6] text-[#C5221F]"
+                      : selectedRequest.priority === "High"
+                      ? "bg-[#FEF7E0] text-[#B06000]"
+                      : selectedRequest.priority === "Medium"
+                      ? "bg-[#E8F0FE] text-[#1A73E8]"
+                      : "bg-[#F1F3F4] text-[#5F6368]"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      selectedRequest.priority === "Urgent"
+                        ? "bg-[#C5221F]"
+                        : selectedRequest.priority === "High"
+                        ? "bg-[#B06000]"
+                        : selectedRequest.priority === "Medium"
+                        ? "bg-[#1A73E8]"
+                        : "bg-[#5F6368]"
+                    }`}
+                  />
+                  {selectedRequest.priority || "Medium"}
+                </span>
+              </div>
               <p>
                 <strong className="text-[#64748B]">Status:</strong> {selectedRequest.status}
               </p>
@@ -611,6 +677,17 @@ export default function StaffWorkRequests() {
           </div>
         </div>
       )}
+
+      {/* Modern, Eye-Friendly Frontend Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteConfirmId)}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={executeDeleteRequest}
+        title="Delete Work Request"
+        message="Are you sure you want to delete this work request? This action cannot be undone."
+        confirmText="Delete Request"
+        type="danger"
+      />
     </div>
   );
 }

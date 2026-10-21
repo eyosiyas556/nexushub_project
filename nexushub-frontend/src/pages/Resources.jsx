@@ -1,10 +1,16 @@
+import { TablePageSkeleton } from "../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import socket from "../services/socket";
+import { Eye, EditPencil, Trash, Plus } from "iconoir-react";
+import ConfirmationModal from "../components/ConfirmationModal";
+import { getCachedData, setCachedData } from "../services/cache";
 
 export default function Resources() {
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedData("admin_resources");
+  const [resources, setResources] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,7 +48,9 @@ export default function Resources() {
   const fetchResources = async () => {
     try {
       const response = await API.get("/resources");
-      setResources(response.data || []);
+      const data = response.data || [];
+      setResources(data);
+      setCachedData("admin_resources", data);
     } catch (err) {
       console.error("Failed to fetch resources:", err);
     } finally {
@@ -93,15 +101,15 @@ export default function Resources() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this resource?")) {
-      try {
-        await API.delete(`/resources/${id}`);
-        fetchResources();
-      } catch (err) {
-        console.error("Failed to delete resource:", err);
-        alert("Error deleting resource.");
-      }
+  const executeDeleteResource = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await API.delete(`/resources/${deleteConfirmId}`);
+      fetchResources();
+    } catch (err) {
+      console.error("Failed to delete resource:", err);
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -136,11 +144,7 @@ export default function Resources() {
   });
 
   if (loading) {
-    return (
-      <div className="h-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]">
-        <p className="text-sm font-medium animate-pulse">Loading resources...</p>
-      </div>
-    );
+    return <TablePageSkeleton titleWidth="w-64" hasCreateButton={true} />;
   }
 
   return (
@@ -167,18 +171,16 @@ export default function Resources() {
               });
               setIsAddModalOpen(true);
             }}
-            className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#000000] text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#000000] text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>➕</span> Add Resource
+            <Plus className="w-4 h-4 mr-1" /> Add Resource
           </button>
         </div>
 
         {/* Search & Filter Bar */}
         <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Search Resources
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Search Resources</label>
             <input
               type="text"
               placeholder="Search by Code, Name, or User..."
@@ -189,9 +191,7 @@ export default function Resources() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Filter by Category
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Filter by Category</label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
@@ -207,9 +207,7 @@ export default function Resources() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
-              Filter by Status
-            </label>
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">Filter by Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -230,12 +228,12 @@ export default function Resources() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-[#F8FAFC]/50 text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                  <th className="py-4 px-6">Resource Code</th>
-                  <th className="py-4 px-6">Resource Name</th>
-                  <th className="py-4 px-6">Category</th>
-                  <th className="py-4 px-6">Status & User</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Code</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Name</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status & User</th>
+                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -247,59 +245,79 @@ export default function Resources() {
                   </tr>
                 ) : (
                   filteredResources.map((res) => (
-                    <tr key={res.id} className="hover:bg-[#F8FAFC]/50 transition">
-                      <td className="py-4 px-6 font-mono font-medium text-[#64748B]">
+                    <tr key={res.id} className="hover:bg-[#F8FAFC]/55 transition">
+                      <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                         {res.resource_code}
                       </td>
-                      <td className="py-4 px-6 font-semibold text-[#0F172A]">
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
                         {res.name}
                       </td>
-                      <td className="py-4 px-6">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-[#0F172A]">
-                          {res.category}
-                        </span>
+                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                        {res.category}
                       </td>
                       <td className="py-4 px-6 space-y-1">
                         <div>
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               res.status === "Available"
-                                ? "bg-green-50 text-green-600"
+                                ? "bg-[#E6F4EA] text-[#137333]"
                                 : res.status === "In Use"
-                                ? "bg-amber-50 text-amber-600"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
                                 : res.status === "Maintenance"
-                                ? "bg-purple-50 text-purple-600"
-                                : "bg-gray-100 text-gray-500"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
+                                : "bg-[#F1F3F4] text-[#5F6368]"
                             }`}
                           >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                res.status === "Available"
+                                  ? "bg-[#137333]"
+                                  : res.status === "In Use"
+                                  ? "bg-[#1A73E8]"
+                                  : res.status === "Maintenance"
+                                  ? "bg-[#B06000]"
+                                  : "bg-[#5F6368]"
+                              }`}
+                            />
                             {res.status}
                           </span>
                         </div>
                         {res.status === "In Use" && (
-                          <p className="text-[11px] font-medium text-[#475569]">
-                            User: <strong className="text-[#0F172A]">{res.in_use_by || res.requested_by || "Assigned Staff"}</strong>
+                          <p className="text-[11px] font-medium text-slate-500">
+                            User: <strong className="text-[#0F172A] font-medium">{res.in_use_by || res.requested_by || "Assigned Staff"}</strong>
                           </p>
                         )}
                       </td>
-                      <td className="py-4 px-6 text-right space-x-3">
-                        <button
-                          onClick={() => openViewModal(res)}
-                          className="text-[#0F172A] hover:underline font-medium cursor-pointer"
-                        >
-                          View Details
-                        </button>
-                        <button
-                          onClick={() => openEditModal(res)}
-                          className="text-[#D97706] hover:underline font-medium cursor-pointer"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(res.id)}
-                          className="text-[#DC2626] hover:underline font-medium cursor-pointer"
-                        >
-                          Delete
-                        </button>
+                      <td className="py-3 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openViewModal(res)}
+                            title="View resource details"
+                            aria-label="View resource"
+                            className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(res)}
+                            title="Edit resource"
+                            aria-label="Edit resource"
+                            className="p-1 text-amber-600 hover:text-amber-700 transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <EditPencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(res.id)}
+                            title="Delete resource"
+                            aria-label="Delete resource"
+                            className="p-1 text-rose-600 hover:text-rose-700 transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <Trash className="w-4 h-4 text-rose-600" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -527,10 +545,33 @@ export default function Resources() {
                 <strong className="text-[#64748B]">Category:</strong>{" "}
                 {selectedResource.category}
               </p>
-              <p>
-                <strong className="text-[#64748B]">Status:</strong>{" "}
-                {selectedResource.status}
-              </p>
+              <div className="flex items-center gap-2">
+                <strong className="text-[#64748B]">Status:</strong>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedResource.status === "Available"
+                      ? "bg-[#E6F4EA] text-[#137333]"
+                      : selectedResource.status === "In Use"
+                      ? "bg-[#E8F0FE] text-[#1A73E8]"
+                      : selectedResource.status === "Maintenance"
+                      ? "bg-[#FEF7E0] text-[#B06000]"
+                      : "bg-[#F1F3F4] text-[#5F6368]"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      selectedResource.status === "Available"
+                        ? "bg-[#137333]"
+                        : selectedResource.status === "In Use"
+                        ? "bg-[#1A73E8]"
+                        : selectedResource.status === "Maintenance"
+                        ? "bg-[#B06000]"
+                        : "bg-[#5F6368]"
+                    }`}
+                  />
+                  {selectedResource.status}
+                </span>
+              </div>
               {selectedResource.status === "In Use" && (
                 <p>
                   <strong className="text-[#64748B]">Currently Used By:</strong>{" "}
@@ -555,6 +596,17 @@ export default function Resources() {
           </div>
         </div>
       )}
+
+      {/* Modern, Eye-Friendly Frontend Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteConfirmId)}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={executeDeleteResource}
+        title="Delete Resource"
+        message="Are you sure you want to delete this resource? Any associated active bookings or requests may be affected."
+        confirmText="Delete Resource"
+        type="danger"
+      />
     </div>
   );
 }

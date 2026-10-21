@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API, { getMediaUrl } from "../../services/api";
+import { Camera, ArrowLeft, CheckCircle, WarningCircle } from "iconoir-react";
 
 export default function StaffProfile() {
   const navigate = useNavigate();
@@ -58,11 +59,65 @@ export default function StaffProfile() {
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
   };
 
-  const handleFileChange = (e) => {
+  const compressImage = (file, maxWidth = 320, maxHeight = 320, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              resolve({ file, dataUrl });
+              return;
+            }
+            const resizedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve({ file: resizedFile, dataUrl });
+          }, "image/jpeg", quality);
+        };
+        img.onerror = () => resolve({ file, dataUrl: event.target.result });
+      };
+      reader.onerror = () => resolve({ file, dataUrl: null });
+    });
+  };
+
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file));
+      try {
+        const { file: compressedFile, dataUrl } = await compressImage(file);
+        setSelectedFile(compressedFile);
+        setPreviewImage(dataUrl);
+      } catch (err) {
+        setSelectedFile(file);
+        setPreviewImage(URL.createObjectURL(file));
+      }
     }
   };
 
@@ -170,7 +225,7 @@ export default function StaffProfile() {
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col">
         
         {/* Header Banner */}
-        <div className="bg-gradient-to-r from-slate-900 to-[#14171f] px-6 py-3.5 text-white flex justify-between items-center shrink-0">
+        <div className="bg-gradient-to-r from-slate-900 to-[#14171f] px-4 sm:px-6 py-3.5 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 shrink-0">
           <div>
             <h1 className="text-xs font-bold tracking-wide">Staff Profile & Security Settings</h1>
             <p className="text-[10px] text-slate-400">Manage your personal information and account password</p>
@@ -179,11 +234,11 @@ export default function StaffProfile() {
             <button
               type="button"
               onClick={() => navigate("/staff/dashboard")}
-              className="text-[10px] px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/10 transition cursor-pointer"
+              className="text-[10px] px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/10 transition cursor-pointer inline-flex items-center gap-1"
             >
-              ← Back to Dashboard
+              <ArrowLeft className="w-3 h-3" /> Back to Dashboard
             </button>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/15 font-semibold">
               {formData.role}
             </span>
           </div>
@@ -203,13 +258,18 @@ export default function StaffProfile() {
             <div className="relative group cursor-pointer shrink-0" onClick={() => fileInputRef.current.click()}>
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-md flex items-center justify-center text-white text-xs font-bold border-2 border-slate-100">
                 {previewImage ? (
-                  <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+                  <img 
+                    src={previewImage} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover" 
+                    onError={() => setPreviewImage(null)}
+                  />
                 ) : (
                   getInitials(formData.name)
                 )}
               </div>
               <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md border border-white text-[9px] hover:bg-blue-700 transition-all">
-                📷
+                <Camera className="w-2.5 h-2.5 text-white" />
               </div>
             </div>
             <div>
@@ -230,7 +290,7 @@ export default function StaffProfile() {
                   Personal Information
                 </h2>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">Full Name</label>
                     <input 
@@ -255,7 +315,7 @@ export default function StaffProfile() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">Phone</label>
                     <input 
@@ -280,14 +340,14 @@ export default function StaffProfile() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">Role</label>
                     <select 
                       name="role" 
                       value={formData.role} 
                       onChange={handleChange}
-                      className="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
                     >
                       <option value="Staff">Staff</option>
                     </select>
@@ -298,7 +358,7 @@ export default function StaffProfile() {
                       name="status" 
                       value={formData.status} 
                       onChange={handleChange}
-                      className="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-blue-500 bg-white"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -312,7 +372,7 @@ export default function StaffProfile() {
                 <button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/10 transition-all disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/10  transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? "Saving Profile..." : "Save Profile"}
                 </button>
@@ -371,7 +431,7 @@ export default function StaffProfile() {
                 <button 
                   type="submit" 
                   disabled={passwordLoading}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/10 transition-all disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md shadow-slate-900/10  transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {passwordLoading ? "Updating Password..." : "Update Password"}
                 </button>
@@ -384,12 +444,12 @@ export default function StaffProfile() {
 
       {/* Floating Bottom Notification Banner */}
       {message && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md border ${
+        <div className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 sm:max-w-md z-50 flex items-center gap-3 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md border ${
           isSuccess 
             ? "bg-slate-900/95 text-emerald-400 border-emerald-500/30" 
             : "bg-slate-900/95 text-rose-400 border-rose-500/30"
         }`}>
-          <span className="text-sm">{isSuccess ? "✅" : "⚠️"}</span>
+          {isSuccess ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /> : <WarningCircle className="w-4 h-4 text-rose-400 shrink-0" />}
           <span className="text-[11px] font-semibold tracking-wide">{message}</span>
         </div>
       )}

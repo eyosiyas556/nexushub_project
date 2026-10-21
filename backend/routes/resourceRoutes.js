@@ -185,6 +185,25 @@ router.put("/:id", verifyToken, async (req, res) => {
 
     const updatedResource = updatedResourceResult.rows[0];
 
+    // Notify any staff member currently using or assigned this resource
+    const activeHolderCheck = await pool.query(
+      `SELECT user_id FROM work_requests 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
+         AND LOWER(status) IN ('approved', 'in progress', 'assigned', 'pending')
+       ORDER BY id DESC LIMIT 1`,
+      [updatedResource.resource_code]
+    );
+    if (activeHolderCheck.rows.length > 0 && activeHolderCheck.rows[0].user_id) {
+      await pool.query(
+        `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
+        [
+          activeHolderCheck.rows[0].user_id,
+          'Resource Updated',
+          `The resource "${updatedResource.name}" (${updatedResource.resource_code}) assigned to you was updated by an Administrator.`
+        ]
+      );
+    }
+
     await pool.query(
       `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
       ["UPDATED", "Resource", `Updated resource details: ${updatedResource.name} (${updatedResource.category})`]
@@ -221,6 +240,25 @@ router.delete("/:id", verifyToken, async (req, res) => {
     }
 
     const deletedResource = deletedResourceResult.rows[0];
+
+    // Notify any staff member who had this resource assigned
+    const activeHolderCheck = await pool.query(
+      `SELECT user_id FROM work_requests 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
+         AND LOWER(status) IN ('approved', 'in progress', 'assigned', 'pending')
+       ORDER BY id DESC LIMIT 1`,
+      [deletedResource.resource_code]
+    );
+    if (activeHolderCheck.rows.length > 0 && activeHolderCheck.rows[0].user_id) {
+      await pool.query(
+        `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
+        [
+          activeHolderCheck.rows[0].user_id,
+          'Resource Removed',
+          `The resource "${deletedResource.name}" (${deletedResource.resource_code}) was removed by an Administrator.`
+        ]
+      );
+    }
 
     await pool.query(
       `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,

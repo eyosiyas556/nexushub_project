@@ -16,7 +16,9 @@ const SOCKET_URL = getBaseUrl();
 const socket = io(SOCKET_URL, {
   transports: ['websocket', 'polling'],
   reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
+  reconnectionDelay: 1500,
+  reconnectionDelayMax: 10000,
+  timeout: 15000,
 });
 
 socket.on('connect', () => {

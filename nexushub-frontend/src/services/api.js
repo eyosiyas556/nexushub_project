@@ -18,7 +18,7 @@ API.interceptors.request.use((config) => {
 // Helper to construct complete URLs for static media / profile pictures
 export const getMediaUrl = (path) => {
     if (!path) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
     const origin = (API.defaults.baseURL || baseURL).replace(/\/api\/?$/, '');
     return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
 };

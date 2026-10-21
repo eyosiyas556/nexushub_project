@@ -22,19 +22,10 @@ const transporter = nodemailer.createTransport({
 });
 
 const fs = require('fs');
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir); 
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
+// Use memory storage so image is retained in memory as buffer
+// and permanently stored in the PostgreSQL database as a Data URL (immune to Render ephemeral disk restarts)
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage: storage,
@@ -208,8 +199,11 @@ router.put('/profile', verifyToken, handleAvatarUpload, async (req, res) => {
         }
 
         let picturePath = currentUser.rows[0].profile_picture;
-        if (req.file) {
-            picturePath = `/uploads/${req.file.filename}`;
+        if (req.file && req.file.buffer) {
+            const mime = req.file.mimetype || 'image/jpeg';
+            picturePath = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+        } else if (req.body.avatar && typeof req.body.avatar === 'string' && req.body.avatar.startsWith('data:image/')) {
+            picturePath = req.body.avatar;
         }
 
         const currentRole = currentUser.rows[0].role;
@@ -253,11 +247,15 @@ router.put('/profile', verifyToken, handleAvatarUpload, async (req, res) => {
 // PUT endpoint to update profile picture only (kept for backward compatibility)
 router.put('/profile-picture', verifyToken, handleAvatarUpload, async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded.' });
+        let picturePath;
+        if (req.file && req.file.buffer) {
+            const mime = req.file.mimetype || 'image/jpeg';
+            picturePath = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+        } else if (req.body.avatar && typeof req.body.avatar === 'string' && req.body.avatar.startsWith('data:image/')) {
+            picturePath = req.body.avatar;
+        } else {
+            return res.status(400).json({ error: 'No image uploaded.' });
         }
-
-        const picturePath = `/uploads/${req.file.filename}`;
         const userId = req.user.id; 
 
         const result = await pool.query(

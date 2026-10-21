@@ -1,10 +1,14 @@
+import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
 import socket from "../../services/socket";
+import { Eye, CheckCircle, Xmark } from "iconoir-react";
+import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function AssignedRequest() {
-  const [assignedRequests, setAssignedRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cached = getCachedData("staff_assigned_requests");
+  const [assignedRequests, setAssignedRequests] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
 
   // Retrieve logged-in staff name dynamically from localStorage (fallback to "Staff Member")
   const [currentStaffName] = useState(() => {
@@ -38,7 +42,9 @@ export default function AssignedRequest() {
       const response = await API.get("/staff/requests/assigned", {
         headers: { "x-user-name": currentStaffName },
       });
-      setAssignedRequests(response.data || []);
+      const data = response.data || [];
+      setAssignedRequests(data);
+      setCachedData("staff_assigned_requests", data);
     } catch (err) {
       console.error("Failed to fetch assigned requests:", err);
     } finally {
@@ -112,11 +118,7 @@ export default function AssignedRequest() {
   });
 
   if (loading) {
-    return (
-      <div className="h-full bg-[#F8FAFC] flex items-center justify-center text-[#64748B]">
-        <p className="text-sm font-medium animate-pulse">Loading assigned tasks...</p>
-      </div>
-    );
+    return <TablePageSkeleton titleWidth="w-56" hasCreateButton={false} />;
   }
 
   return (
@@ -135,7 +137,7 @@ export default function AssignedRequest() {
         {/* Search & Filter Bar */}
         <div className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Search Assigned Tasks
             </label>
             <input
@@ -148,7 +150,7 @@ export default function AssignedRequest() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[#64748B] uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-bold text-[#0F172A] uppercase tracking-wider mb-1">
               Filter by Status
             </label>
             <select
@@ -171,13 +173,13 @@ export default function AssignedRequest() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-[#F8FAFC]/50 text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
-                  <th className="py-4 px-6">Request #</th>
-                  <th className="py-4 px-6">Title</th>
-                  <th className="py-4 px-6">Requested By</th>
-                  <th className="py-4 px-6">Priority</th>
-                  <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
+                <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Request #</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Title</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Requested By</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Priority</th>
+                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status</th>
+                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -191,67 +193,95 @@ export default function AssignedRequest() {
                   filteredRequests.map((req) => {
                     const isResolved = 
                       req.status?.toLowerCase() === "resolved" || 
+                      req.status?.toLowerCase() === "completed" ||
                       req.status?.toLowerCase() === "closed";
                     const isRejected = req.status?.toLowerCase() === "rejected";
 
                     return (
-                      <tr key={req.id} className="hover:bg-[#F8FAFC]/50 transition">
-                        <td className="py-4 px-6 font-mono font-medium text-[#64748B]">
+                      <tr key={req.id} className="hover:bg-[#F8FAFC]/55 transition">
+                        <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                           {req.request_number}
                         </td>
-                        <td className="py-4 px-6 font-semibold text-[#0F172A]">
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
                           {req.title}
                         </td>
-                        <td className="py-4 px-6 text-[#64748B]">
+                        <td className="py-4 px-6 font-medium text-[#0F172A]">
                           {req.requested_by || "Unknown"}
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               req.priority === "Urgent"
-                                ? "bg-red-50 text-red-600"
+                                ? "bg-[#FCE8E6] text-[#C5221F]"
                                 : req.priority === "High"
-                                ? "bg-orange-50 text-orange-600"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
                                 : req.priority === "Medium"
-                                ? "bg-blue-50 text-blue-600"
-                                : "bg-gray-100 text-gray-500"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                : "bg-[#F1F3F4] text-[#5F6368]"
                             }`}
                           >
-                            {req.priority}
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                req.priority === "Urgent"
+                                  ? "bg-[#C5221F]"
+                                  : req.priority === "High"
+                                  ? "bg-[#B06000]"
+                                  : req.priority === "Medium"
+                                  ? "bg-[#1A73E8]"
+                                  : "bg-[#5F6368]"
+                              }`}
+                            />
+                            {req.priority || "Medium"}
                           </span>
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                               req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
-                                ? "bg-green-50 text-green-600"
+                                ? "bg-[#E6F4EA] text-[#137333]"
                                 : req.status === "In Progress"
-                                ? "bg-amber-50 text-amber-600"
+                                ? "bg-[#E8F0FE] text-[#1A73E8]"
                                 : req.status === "Pending"
-                                ? "bg-blue-50 text-blue-600"
-                                : "bg-red-50 text-red-600"
+                                ? "bg-[#FEF7E0] text-[#B06000]"
+                                : "bg-[#FCE8E6] text-[#C5221F]"
                             }`}
                           >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
+                                  ? "bg-[#137333]"
+                                  : req.status === "In Progress"
+                                  ? "bg-[#1A73E8]"
+                                  : req.status === "Pending"
+                                  ? "bg-[#B06000]"
+                                  : "bg-[#C5221F]"
+                              }`}
+                            />
                             {req.status}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-right">
-                          {isResolved ? (
-                            <span className="text-emerald-600 font-semibold italic text-[11px]">
-                              Completed &amp; Resolved
-                            </span>
-                          ) : isRejected ? (
-                            <span className="text-rose-500 font-semibold italic text-[11px]">
-                              Rejected
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => openViewModal(req)}
-                              className="text-[#0F172A] hover:underline font-semibold cursor-pointer"
-                            >
-                              Manage Task
-                            </button>
-                          )}
+                        <td className="py-3 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {isResolved ? (
+                              <span className="inline-flex items-center gap-1 text-[#137333] font-semibold text-xs">
+                                <CheckCircle className="w-3.5 h-3.5" /> Resolved
+                              </span>
+                            ) : isRejected ? (
+                              <span className="inline-flex items-center gap-1 text-[#C5221F] font-semibold text-xs">
+                                <Xmark className="w-3.5 h-3.5" /> Rejected
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openViewModal(req)}
+                                title="Manage task"
+                                aria-label="Manage task"
+                                className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -281,9 +311,33 @@ export default function AssignedRequest() {
               <p>
                 <strong className="text-[#64748B]">Requested By:</strong> {selectedRequest.requested_by}
               </p>
-              <p>
-                <strong className="text-[#64748B]">Priority:</strong> {selectedRequest.priority}
-              </p>
+              <div className="flex items-center gap-2">
+                <strong className="text-[#64748B]">Priority:</strong>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedRequest.priority === "Urgent"
+                      ? "bg-[#FCE8E6] text-[#C5221F]"
+                      : selectedRequest.priority === "High"
+                      ? "bg-[#FEF7E0] text-[#B06000]"
+                      : selectedRequest.priority === "Medium"
+                      ? "bg-[#E8F0FE] text-[#1A73E8]"
+                      : "bg-[#F1F3F4] text-[#5F6368]"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      selectedRequest.priority === "Urgent"
+                        ? "bg-[#C5221F]"
+                        : selectedRequest.priority === "High"
+                        ? "bg-[#B06000]"
+                        : selectedRequest.priority === "Medium"
+                        ? "bg-[#1A73E8]"
+                        : "bg-[#5F6368]"
+                    }`}
+                  />
+                  {selectedRequest.priority || "Medium"}
+                </span>
+              </div>
               {selectedRequest.rejection_reason && (
                 <p>
                   <strong className="text-rose-600">Rejection Reason:</strong> {selectedRequest.rejection_reason}

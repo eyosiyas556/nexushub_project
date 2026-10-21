@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { Eye, EyeClosed, ArrowLeft } from 'iconoir-react';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ export default function Login() {
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isWakingServer, setIsWakingServer] = useState(false);
 
     // Forgot Password Flow States (now using email instead of phone)
     const [authView, setAuthView] = useState('login'); 
@@ -21,6 +23,11 @@ export default function Login() {
     const [isTimerActive, setIsTimerActive] = useState(false);
 
     const navigate = useNavigate();
+
+    // Background warm-up ping on mount to start waking Render backend before user clicks submit
+    useEffect(() => {
+        API.get('/health').catch(() => {});
+    }, []);
 
     // Timer effect for OTP expiry countdown
     useEffect(() => {
@@ -46,6 +53,12 @@ export default function Login() {
         setError('');
         setSuccessMsg('');
         setLoading(true);
+        setIsWakingServer(false);
+
+        // Show waking notice if request takes > 2.5 seconds
+        const wakeTimer = setTimeout(() => {
+            setIsWakingServer(true);
+        }, 2500);
 
         try {
             const response = await API.post('/auth/login', { email, password });
@@ -64,6 +77,8 @@ export default function Login() {
         } catch (err) {
             setError(err.response?.data?.error || 'Authentication failed. Please check your credentials.');
         } finally {
+            clearTimeout(wakeTimer);
+            setIsWakingServer(false);
             setLoading(false);
         }
     };
@@ -118,11 +133,11 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-3 sm:p-4 md:p-6">
             <div className="bg-[#FFFFFF] border border-gray-100 rounded-3xl shadow-xl overflow-hidden max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 relative">
                 
                 {/* Left Side Banner */}
-                <div className="relative bg-gradient-to-tr from-[#0F172A] to-[#1E293B] p-10 md:p-12 text-white flex flex-col justify-between overflow-hidden hidden md:flex">
+                <div className="relative relative bg-gradient-to-tr from-[#0F172A] to-[#1E293B] p-10 md:p-12 text-white flex flex-col justify-between overflow-hidden hidden md:flex flex flex-col justify-between overflow-hidden hidden md:flex">
                     <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-black rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
                     <div className="absolute bottom-10 right-[-40px] w-48 h-48 bg-slate-800 rounded-full mix-blend-multiply filter blur-lg opacity-60"></div>
 
@@ -140,7 +155,7 @@ export default function Login() {
                 </div>
 
                 {/* Right Side Forms */}
-                <div className="p-8 md:p-12 flex flex-col justify-center bg-[#FFFFFF]">
+                <div className="p-5 sm:p-8 md:p-12 flex flex-col justify-center bg-[#FFFFFF]">
                     
                     {error && (
                         <div className="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl mb-4 text-xs font-medium">
@@ -151,6 +166,13 @@ export default function Login() {
                     {successMsg && (
                         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-xl mb-4 text-xs font-medium">
                             {successMsg}
+                        </div>
+                    )}
+
+                    {isWakingServer && (
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl mb-4 text-xs font-medium flex items-center space-x-2 animate-pulse">
+                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping mr-1"></span>
+                            <span>Connecting to server... Server is spinning up from standby, please wait a moment.</span>
                         </div>
                     )}
 
@@ -202,9 +224,10 @@ export default function Login() {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="text-xs font-semibold text-[#0F172A] hover:text-black px-3 focus:outline-none uppercase tracking-wider cursor-pointer"
+                                            className="px-3 text-[#64748B] hover:text-[#0F172A] focus:outline-none cursor-pointer transition flex items-center justify-center"
+                                            title={showPassword ? "Hide password" : "Show password"}
                                         >
-                                            {showPassword ? "Hide" : "Show"}
+                                            {showPassword ? <EyeClosed className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
                                 </div>
@@ -257,9 +280,9 @@ export default function Login() {
                                             setError('');
                                             setSuccessMsg('');
                                         }}
-                                        className="text-xs font-semibold text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                                        className="text-xs font-semibold text-[#64748B] hover:text-[#0F172A] cursor-pointer inline-flex items-center gap-1 transition"
                                     >
-                                        ← Back to Sign in
+                                        <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign in
                                     </button>
                                 </div>
                             </form>

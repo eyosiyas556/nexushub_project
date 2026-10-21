@@ -4,6 +4,7 @@ import API from "../services/api";
 import socket from "../services/socket";
 import { Eye, EditPencil, Trash, Check, Xmark } from "iconoir-react";
 import ConfirmationModal from "../components/ConfirmationModal";
+import ActionMenu from "../components/ActionMenu";
 import { getCachedData, setCachedData } from "../services/cache";
 
 export default function Requests() {
@@ -249,7 +250,7 @@ export default function Requests() {
 
         {/* Work Requests Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[280px]">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
@@ -409,37 +410,37 @@ export default function Requests() {
                         </td>
                         {/* Actions Column */}
                         <td className="py-3 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openViewModal(req)}
-                              title="View request details"
-                              aria-label="View request"
-                              className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {!isEquipment && (
-                              <button
-                                type="button"
-                                onClick={() => openAssignModal(req)}
-                                title="Edit / Assign request"
-                                aria-label="Edit request"
-                                className="p-1 text-amber-600 hover:text-amber-700 transition cursor-pointer inline-flex items-center justify-center"
-                              >
-                                <EditPencil className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirmId(req.id)}
-                              title="Delete request"
-                              aria-label="Delete request"
-                              className="p-1 text-rose-600 hover:text-rose-700 transition cursor-pointer inline-flex items-center justify-center"
-                            >
-                              <Trash className="w-4 h-4 text-rose-600" />
-                            </button>
-                          </div>
+                          <ActionMenu
+                            actions={[
+                              {
+                                label: "View Details",
+                                icon: <Eye className="w-4 h-4 text-slate-500" />,
+                                onClick: () => openViewModal(req),
+                              },
+                              !isLocked && statusLower === "pending" && {
+                                label: "Approve Request",
+                                icon: <Check className="w-4 h-4 text-emerald-600" />,
+                                onClick: () => handleApprove(req),
+                              },
+                              !isLocked && statusLower === "pending" && {
+                                label: "Reject Request",
+                                icon: <Xmark className="w-4 h-4 text-rose-600" />,
+                                onClick: () => openRejectModal(req),
+                                danger: true,
+                              },
+                              !isEquipment && {
+                                label: "Assign / Update",
+                                icon: <EditPencil className="w-4 h-4 text-amber-600" />,
+                                onClick: () => openAssignModal(req),
+                              },
+                              {
+                                label: "Delete Request",
+                                icon: <Trash className="w-4 h-4 text-rose-600" />,
+                                onClick: () => setDeleteConfirmId(req.id),
+                                danger: true,
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     );

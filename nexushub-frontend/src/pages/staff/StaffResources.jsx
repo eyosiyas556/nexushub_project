@@ -4,6 +4,7 @@ import API from "../../services/api";
 import socket from "../../services/socket";
 import { Eye, LogOut } from "iconoir-react";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import ActionMenu from "../../components/ActionMenu";
 import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function StaffResources() {
@@ -185,7 +186,7 @@ export default function StaffResources() {
 
         {/* Resources Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[280px]">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
@@ -260,28 +261,21 @@ export default function StaffResources() {
                           )}
                         </td>
                         <td className="py-3 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Show Release button ONLY if the resource is in use AND assigned to this specific staff member */}
-                            {isAssignedToMe && (
-                              <button
-                                onClick={() => setConfirmReleaseCode(res.resource_code)}
-                                disabled={releasingCode === res.resource_code}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold transition shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
-                              >
-                                <LogOut className="w-3.5 h-3.5" />
-                                <span>{releasingCode === res.resource_code ? "Releasing..." : "Release"}</span>
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => openViewModal(res)}
-                              title="View resource details"
-                              aria-label="View resource"
-                              className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <ActionMenu
+                            actions={[
+                              {
+                                label: "View Details",
+                                icon: <Eye className="w-4 h-4 text-slate-500" />,
+                                onClick: () => openViewModal(res),
+                              },
+                              isAssignedToMe && {
+                                label: releasingCode === res.resource_code ? "Releasing..." : "Release Resource",
+                                icon: <LogOut className="w-4 h-4 text-amber-600" />,
+                                onClick: () => setConfirmReleaseCode(res.resource_code),
+                                disabled: releasingCode === res.resource_code,
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     );

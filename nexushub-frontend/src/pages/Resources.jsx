@@ -4,6 +4,7 @@ import API from "../services/api";
 import socket from "../services/socket";
 import { Eye, EditPencil, Trash, Plus } from "iconoir-react";
 import ConfirmationModal from "../components/ConfirmationModal";
+import ActionMenu from "../components/ActionMenu";
 import { getCachedData, setCachedData } from "../services/cache";
 
 export default function Resources() {
@@ -225,7 +226,7 @@ export default function Resources() {
 
         {/* Resources Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[280px]">
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
@@ -289,35 +290,26 @@ export default function Resources() {
                         )}
                       </td>
                       <td className="py-3 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openViewModal(res)}
-                            title="View resource details"
-                            aria-label="View resource"
-                            className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(res)}
-                            title="Edit resource"
-                            aria-label="Edit resource"
-                            className="p-1 text-amber-600 hover:text-amber-700 transition cursor-pointer inline-flex items-center justify-center"
-                          >
-                            <EditPencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirmId(res.id)}
-                            title="Delete resource"
-                            aria-label="Delete resource"
-                            className="p-1 text-rose-600 hover:text-rose-700 transition cursor-pointer inline-flex items-center justify-center"
-                          >
-                            <Trash className="w-4 h-4 text-rose-600" />
-                          </button>
-                        </div>
+                        <ActionMenu
+                          actions={[
+                            {
+                              label: "View Details",
+                              icon: <Eye className="w-4 h-4 text-slate-500" />,
+                              onClick: () => openViewModal(res),
+                            },
+                            {
+                              label: "Edit Resource",
+                              icon: <EditPencil className="w-4 h-4 text-amber-600" />,
+                              onClick: () => openEditModal(res),
+                            },
+                            {
+                              label: "Delete Resource",
+                              icon: <Trash className="w-4 h-4 text-rose-600" />,
+                              onClick: () => setDeleteConfirmId(res.id),
+                              danger: true,
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))

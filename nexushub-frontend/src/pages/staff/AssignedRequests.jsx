@@ -2,7 +2,8 @@ import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
 import API from "../../services/api";
 import socket from "../../services/socket";
-import { Eye, CheckCircle, Xmark } from "iconoir-react";
+import { Eye, CheckCircle, Xmark, EditPencil } from "iconoir-react";
+import ActionMenu from "../../components/ActionMenu";
 import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function AssignedRequest() {
@@ -170,7 +171,7 @@ export default function AssignedRequest() {
 
         {/* Assigned Requests Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[280px]">
             <table className="w-full text-left border-collapse min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
@@ -261,27 +262,19 @@ export default function AssignedRequest() {
                           </span>
                         </td>
                         <td className="py-3 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {isResolved ? (
-                              <span className="inline-flex items-center gap-1 text-[#137333] font-semibold text-xs">
-                                <CheckCircle className="w-3.5 h-3.5" /> Resolved
-                              </span>
-                            ) : isRejected ? (
-                              <span className="inline-flex items-center gap-1 text-[#C5221F] font-semibold text-xs">
-                                <Xmark className="w-3.5 h-3.5" /> Rejected
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openViewModal(req)}
-                                title="Manage task"
-                                aria-label="Manage task"
-                                className="p-1 text-slate-500 hover:text-[#0F172A] transition cursor-pointer inline-flex items-center justify-center"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
+                          <ActionMenu
+                            actions={[
+                              {
+                                label: !isResolved && !isRejected ? "Manage Task" : "View Details",
+                                icon: !isResolved && !isRejected ? (
+                                  <EditPencil className="w-4 h-4 text-amber-600" />
+                                ) : (
+                                  <Eye className="w-4 h-4 text-slate-500" />
+                                ),
+                                onClick: () => openViewModal(req),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     );

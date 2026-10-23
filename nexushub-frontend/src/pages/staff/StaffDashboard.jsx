@@ -318,6 +318,7 @@ export default function StaffDashboard() {
                     </span>
                     <span
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                        req.status === "Approved" ||
                         req.status === "Completed" ||
                         req.status === "Resolved" ||
                         req.status === "Closed"
@@ -331,6 +332,7 @@ export default function StaffDashboard() {
                     >
                       <span
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          req.status === "Approved" ||
                           req.status === "Completed" ||
                           req.status === "Resolved" ||
                           req.status === "Closed"

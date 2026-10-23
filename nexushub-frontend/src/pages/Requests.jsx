@@ -378,7 +378,7 @@ export default function Requests() {
                             <div className="space-y-0.5">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                  req.status === "Resolved" || req.status === "Closed"
+                                  req.status === "Approved" || req.status === "Resolved" || req.status === "Closed" || req.status === "Completed"
                                     ? "bg-[#E6F4EA] text-[#137333]"
                                     : req.status === "Rejected"
                                     ? "bg-[#FCE8E6] text-[#C5221F]"
@@ -389,7 +389,7 @@ export default function Requests() {
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                    req.status === "Resolved" || req.status === "Closed"
+                                    req.status === "Approved" || req.status === "Resolved" || req.status === "Closed" || req.status === "Completed"
                                       ? "bg-[#137333]"
                                       : req.status === "Rejected"
                                       ? "bg-[#C5221F]"

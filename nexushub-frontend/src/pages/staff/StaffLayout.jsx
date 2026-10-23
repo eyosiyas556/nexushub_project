@@ -677,7 +677,7 @@ export default function StaffLayout() {
                           <p className="text-[11px] text-slate-400">Requester: {req.requested_by}</p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          req.status === "Resolved" || req.status === "Completed" 
+                          req.status === "Approved" || req.status === "Resolved" || req.status === "Completed" 
                             ? "bg-green-500/20 text-green-400" 
                             : "bg-amber-500/20 text-amber-400"
                         }`}>

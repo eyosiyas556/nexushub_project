@@ -241,7 +241,7 @@ export default function AssignedRequest() {
                         <td className="py-4 px-6">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
+                              req.status === "Approved" || req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
                                 ? "bg-[#E6F4EA] text-[#137333]"
                                 : req.status === "In Progress"
                                 ? "bg-[#E8F0FE] text-[#1A73E8]"
@@ -252,7 +252,7 @@ export default function AssignedRequest() {
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
+                                req.status === "Approved" || req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
                                   ? "bg-[#137333]"
                                   : req.status === "In Progress"
                                   ? "bg-[#1A73E8]"
@@ -332,6 +332,33 @@ export default function AssignedRequest() {
                     }`}
                   />
                   {selectedRequest.priority || "Medium"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <strong className="text-[#64748B]">Status:</strong>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedRequest.status === "Approved" || selectedRequest.status === "Completed" || selectedRequest.status === "Resolved" || selectedRequest.status === "Closed"
+                      ? "bg-[#E6F4EA] text-[#137333]"
+                      : selectedRequest.status === "Rejected"
+                      ? "bg-[#FCE8E6] text-[#C5221F]"
+                      : selectedRequest.status === "In Progress"
+                      ? "bg-[#E8F0FE] text-[#1A73E8]"
+                      : "bg-[#FEF7E0] text-[#B06000]"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      selectedRequest.status === "Approved" || selectedRequest.status === "Completed" || selectedRequest.status === "Resolved" || selectedRequest.status === "Closed"
+                        ? "bg-[#137333]"
+                        : selectedRequest.status === "Rejected"
+                        ? "bg-[#C5221F]"
+                        : selectedRequest.status === "In Progress"
+                        ? "bg-[#1A73E8]"
+                        : "bg-[#B06000]"
+                    }`}
+                  />
+                  {selectedRequest.status}
                 </span>
               </div>
               {selectedRequest.rejection_reason && (

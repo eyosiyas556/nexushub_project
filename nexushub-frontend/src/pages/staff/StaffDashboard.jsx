@@ -357,7 +357,9 @@ export default function StaffDashboard() {
                         {req.priority || "Medium"}
                       </span>
                     </span>
-                    <span>{new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span>
+                      {new Date(req.created_at).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(req.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
                   </div>
                 </div>
               ))}

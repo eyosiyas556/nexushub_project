@@ -3,10 +3,24 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import API from "../services/api";
 import socket from "../services/socket";
-import { Eye, EditPencil, Trash, Check, Xmark } from "iconoir-react";
+import { Eye, EditPencil, Trash, Check, Xmark, Clock } from "iconoir-react";
 import ConfirmationModal from "../components/ConfirmationModal";
 import ActionMenu from "../components/ActionMenu";
 import { getCachedData, setCachedData } from "../services/cache";
+
+const formatDateTime = (timestamp) => {
+  if (!timestamp) return "N/A";
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return "N/A";
+  return `${date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })} · ${date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+};
 
 export default function Requests() {
   const cached = getCachedData("admin_requests");
@@ -318,8 +332,8 @@ export default function Requests() {
             <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="py-4 px-5 w-[15%] font-bold text-[#0F172A]">Request #</th>
-                  <th className="py-4 px-5 w-[23%] font-bold text-[#0F172A]">Title</th>
+                  <th className="py-4 px-5 w-[16%] font-bold text-[#0F172A]">Request # / Sent</th>
+                  <th className="py-4 px-5 w-[22%] font-bold text-[#0F172A]">Title</th>
                   <th className="py-4 px-5 w-[13%] font-bold text-[#0F172A]">Category</th>
                   <th className="py-4 px-5 w-[12%] font-bold text-[#0F172A]">Priority</th>
                   <th className="py-4 px-5 w-[15%] font-bold text-[#0F172A]">Status / Assigned</th>
@@ -359,8 +373,17 @@ export default function Requests() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                        <td className="py-3.5 px-5 font-mono font-medium text-[#0F172A] truncate">
-                          {req.request_number}
+                        <td className="py-3.5 px-5">
+                          <span className="font-mono font-semibold text-[#0F172A] block truncate">
+                            {req.request_number}
+                          </span>
+                          <span
+                            className="text-[11px] text-slate-500 font-sans font-normal truncate flex items-center gap-1 mt-0.5"
+                            title={formatDateTime(req.created_at)}
+                          >
+                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{formatDateTime(req.created_at)}</span>
+                          </span>
                         </td>
                         <td className="py-3.5 px-5 font-medium text-[#0F172A]">
                           <span className="block truncate">{req.title}</span>
@@ -507,6 +530,10 @@ export default function Requests() {
                 <p className="text-xs text-[#64748B] mt-0.5">
                   Request <span className="font-mono font-semibold text-[#0F172A]">{selectedRequest.request_number}</span> &bull; {selectedRequest.title}
                 </p>
+                <p className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  Sent: {formatDateTime(selectedRequest.created_at)}
+                </p>
               </div>
               <span className="p-2 bg-rose-50 text-rose-600 rounded-xl shrink-0">
                 <Xmark className="w-4 h-4" />
@@ -622,6 +649,13 @@ export default function Requests() {
                 <strong className="text-[#64748B]">Requested By:</strong>{" "}
                 {selectedRequest.requested_by}
               </p>
+              <p className="flex items-center gap-1.5">
+                <strong className="text-[#64748B]">Date & Time Sent:</strong>{" "}
+                <span className="text-[#0F172A] font-medium flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  {formatDateTime(selectedRequest.created_at)}
+                </span>
+              </p>
               <p>
                 <strong className="text-[#64748B]">Description:</strong>{" "}
                 {selectedRequest.description || "No description provided."}
@@ -643,9 +677,15 @@ export default function Requests() {
       {isAssignModalOpen && selectedRequest && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-[#0F172A]">
-              Edit / Assign Request: {selectedRequest.request_number}
-            </h3>
+            <div>
+              <h3 className="text-lg font-bold text-[#0F172A]">
+                Edit / Assign Request: {selectedRequest.request_number}
+              </h3>
+              <p className="text-[11px] text-slate-500 font-normal flex items-center gap-1 mt-0.5">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                Sent on {formatDateTime(selectedRequest.created_at)}
+              </p>
+            </div>
             <form onSubmit={handleAssignSubmit} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[#64748B] uppercase mb-1">

@@ -3,10 +3,24 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import API from "../../services/api";
 import socket from "../../services/socket";
-import { Eye, EditPencil, Trash } from "iconoir-react";
+import { Eye, EditPencil, Trash, Clock } from "iconoir-react";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import ActionMenu from "../../components/ActionMenu";
 import { getCachedData, setCachedData } from "../../services/cache";
+
+const formatDateTime = (timestamp) => {
+  if (!timestamp) return "N/A";
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return "N/A";
+  return `${date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })} · ${date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+};
 
 export default function StaffWorkRequests() {
   const cachedRequests = getCachedData("staff_requests");
@@ -309,8 +323,8 @@ export default function StaffWorkRequests() {
             <table className="w-full text-left border-collapse table-fixed min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="w-[18%] py-4 px-5 font-bold text-[#0F172A]">Request #</th>
-                  <th className="w-[28%] py-4 px-5 font-bold text-[#0F172A]">Title</th>
+                  <th className="w-[20%] py-4 px-5 font-bold text-[#0F172A]">Request # / Sent</th>
+                  <th className="w-[26%] py-4 px-5 font-bold text-[#0F172A]">Title</th>
                   <th className="w-[18%] py-4 px-5 font-bold text-[#0F172A]">Category</th>
                   <th className="w-[13%] py-4 px-5 font-bold text-[#0F172A]">Priority</th>
                   <th className="w-[13%] py-4 px-5 font-bold text-[#0F172A]">Status</th>
@@ -350,8 +364,17 @@ export default function StaffWorkRequests() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                        <td className="py-3.5 px-5 font-mono font-medium text-[#0F172A] truncate">
-                          {req.request_number}
+                        <td className="py-3.5 px-5">
+                          <span className="font-mono font-semibold text-[#0F172A] block truncate">
+                            {req.request_number}
+                          </span>
+                          <span
+                            className="text-[11px] text-slate-500 font-sans font-normal truncate flex items-center gap-1 mt-0.5"
+                            title={formatDateTime(req.created_at)}
+                          >
+                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{formatDateTime(req.created_at)}</span>
+                          </span>
                         </td>
                         <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.title}
@@ -679,6 +702,13 @@ export default function StaffWorkRequests() {
               )}
               <p>
                 <strong className="text-[#64748B]">Assigned To:</strong> {selectedRequest.assigned_to || "Unassigned"}
+              </p>
+              <p className="flex items-center gap-1.5">
+                <strong className="text-[#64748B]">Date & Time Sent:</strong>{" "}
+                <span className="text-[#0F172A] font-medium flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  {formatDateTime(selectedRequest.created_at)}
+                </span>
               </p>
               <p>
                 <strong className="text-[#64748B]">Description:</strong>{" "}

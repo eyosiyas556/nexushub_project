@@ -7,18 +7,33 @@ import { Eye, CheckCircle, Xmark, EditPencil, Clock } from "iconoir-react";
 import ActionMenu from "../../components/ActionMenu";
 import { getCachedData, setCachedData } from "../../services/cache";
 
-const formatDateTime = (timestamp) => {
+const formatDate = (timestamp) => {
   if (!timestamp) return "N/A";
   const date = new Date(timestamp);
   if (isNaN(date.getTime())) return "N/A";
-  return `${date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString([], {
     month: "short",
     day: "numeric",
     year: "numeric",
-  })} · ${date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
+  });
+};
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
     minute: "2-digit",
-  })}`;
+    hour12: true,
+  });
+};
+
+const formatDateTime = (timestamp) => {
+  if (!timestamp) return "N/A";
+  const d = formatDate(timestamp);
+  const t = formatTime(timestamp);
+  return t ? `${d} at ${t}` : d;
 };
 
 export default function AssignedRequest() {
@@ -274,17 +289,21 @@ export default function AssignedRequest() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                        <td className="py-3.5 px-5">
+                        <td className="py-3 px-5">
                           <span className="font-mono font-semibold text-[#0F172A] block truncate">
                             {req.request_number}
                           </span>
-                          <span
-                            className="text-[11px] text-slate-500 font-sans font-normal truncate flex items-center gap-1 mt-0.5"
-                            title={formatDateTime(req.created_at)}
-                          >
-                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{formatDateTime(req.created_at)}</span>
-                          </span>
+                          {req.created_at ? (
+                            <div className="text-[11px] text-slate-500 font-sans mt-0.5 space-y-0.5 leading-tight">
+                              <span className="block text-slate-600 font-medium whitespace-nowrap">
+                                {formatDate(req.created_at)}
+                              </span>
+                              <span className="flex items-center gap-1 text-slate-400 whitespace-nowrap font-normal">
+                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{formatTime(req.created_at)}</span>
+                              </span>
+                            </div>
+                          ) : null}
                         </td>
                         <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.title}

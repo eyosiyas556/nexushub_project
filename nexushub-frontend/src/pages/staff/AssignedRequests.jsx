@@ -1,5 +1,6 @@
 import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import API from "../../services/api";
 import socket from "../../services/socket";
 import { Eye, CheckCircle, Xmark, EditPencil } from "iconoir-react";
@@ -37,6 +38,36 @@ export default function AssignedRequest() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const statusOptions = ["Pending", "In Progress", "Completed", "Rejected"];
+
+  // Highlight parameter from notification click
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightParam = searchParams.get("highlight");
+  const [activeHighlight, setActiveHighlight] = useState(null);
+
+  useEffect(() => {
+    if (highlightParam) {
+      setActiveHighlight(highlightParam);
+      const timer = setTimeout(() => {
+        const targetEl =
+          document.getElementById(`row-${highlightParam}`) ||
+          document.querySelector(`[data-request-number="${highlightParam}"]`) ||
+          document.querySelector(`[data-resource-code="${highlightParam}"]`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+
+      const clearTimer = setTimeout(() => {
+        setActiveHighlight(null);
+        setSearchParams({}, { replace: true });
+      }, 4000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [highlightParam, assignedRequests]);
 
   const fetchAssignedRequests = async () => {
     try {
@@ -201,8 +232,25 @@ export default function AssignedRequest() {
                       req.status?.toLowerCase() === "closed";
                     const isRejected = req.status?.toLowerCase() === "rejected";
 
+                    const isHighlighted =
+                      activeHighlight &&
+                      (String(req.request_number || "").toLowerCase() === activeHighlight.toLowerCase() ||
+                        String(req.id) === String(activeHighlight) ||
+                        (req.resource_code &&
+                          String(req.resource_code).toLowerCase() === activeHighlight.toLowerCase()));
+
                     return (
-                      <tr key={req.id} className="hover:bg-[#F8FAFC]/55 transition">
+                      <tr
+                        key={req.id}
+                        id={`row-${req.request_number || req.id}`}
+                        data-request-number={req.request_number}
+                        data-resource-code={req.resource_code || ""}
+                        className={`transition-all duration-700 ${
+                          isHighlighted
+                            ? "bg-amber-100/90 ring-2 ring-amber-400 ring-offset-2 animate-pulse shadow-md font-semibold"
+                            : "hover:bg-[#F8FAFC]/55"
+                        }`}
+                      >
                         <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                           {req.request_number}
                         </td>

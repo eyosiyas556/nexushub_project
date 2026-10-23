@@ -4,9 +4,18 @@ const pool = require('../../config/db');
 const verifyToken = require('../../middleware/authMiddleware');
 const { getIO } = require('../../socket');
 
-// Helper function to securely create system notifications
+// Helper function to securely create system notifications (notify once per event)
 const sendNotification = async (targetUserId, title, message) => {
   try {
+    if (!targetUserId) return;
+    const dupCheck = await pool.query(
+      `SELECT id FROM notifications 
+       WHERE user_id = $1 AND title = $2 AND message = $3 AND created_at > NOW() - INTERVAL '1 minute'`,
+      [targetUserId, title, message]
+    );
+    if (dupCheck.rows.length > 0) {
+      return;
+    }
     await pool.query(
       'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
       [targetUserId, title, message]

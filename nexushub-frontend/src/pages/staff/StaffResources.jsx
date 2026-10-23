@@ -1,5 +1,6 @@
 import { TablePageSkeleton } from "../../components/Skeletons";
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import API from "../../services/api";
 import socket from "../../services/socket";
 import { Eye, LogOut } from "iconoir-react";
@@ -36,6 +37,35 @@ export default function StaffResources() {
   ];
 
   const statusOptions = ["Available", "In Use", "Maintenance", "Retired"];
+
+  // Highlight parameter from notification click
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightParam = searchParams.get("highlight");
+  const [activeHighlight, setActiveHighlight] = useState(null);
+
+  useEffect(() => {
+    if (highlightParam) {
+      setActiveHighlight(highlightParam);
+      const timer = setTimeout(() => {
+        const targetEl =
+          document.getElementById(`row-${highlightParam}`) ||
+          document.querySelector(`[data-resource-code="${highlightParam}"]`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+
+      const clearTimer = setTimeout(() => {
+        setActiveHighlight(null);
+        setSearchParams({}, { replace: true });
+      }, 4000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [highlightParam, resources]);
 
   const loadCurrentUserInfo = () => {
     try {
@@ -214,8 +244,22 @@ export default function StaffResources() {
                       res.current_user_name?.toLowerCase().trim() ===
                         currentUserName.toLowerCase().trim();
 
+                    const isHighlighted =
+                      activeHighlight &&
+                      (String(res.resource_code || "").toLowerCase() === activeHighlight.toLowerCase() ||
+                        String(res.id) === String(activeHighlight));
+
                     return (
-                      <tr key={res.id} className="hover:bg-[#F8FAFC]/55 transition">
+                      <tr
+                        key={res.id}
+                        id={`row-${res.resource_code || res.id}`}
+                        data-resource-code={res.resource_code}
+                        className={`transition-all duration-700 ${
+                          isHighlighted
+                            ? "bg-amber-100/90 ring-2 ring-amber-400 ring-offset-2 animate-pulse shadow-md font-semibold"
+                            : "hover:bg-[#F8FAFC]/55"
+                        }`}
+                      >
                         <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
                           {res.resource_code}
                         </td>

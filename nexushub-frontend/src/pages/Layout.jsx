@@ -83,54 +83,50 @@ export default function Layout() {
   // Tablet/Desktop Collapsible Sidebar State
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Live Real-Time Toast notification state (Chat-like pop-up)
-  const [liveToast, setLiveToast] = useState(null);
-  const initialNotifsLoaded = useRef(false);
-
-  const playNotificationSound = () => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.06, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.25);
-    } catch (e) {}
-  };
-
-  const fetchNotifications = async (isLiveEvent = false) => {
+  const fetchNotifications = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
       const res = await API.get("/notifications");
       const freshList = res.data || [];
-
-      if (isLiveEvent && initialNotifsLoaded.current) {
-        const latestUnread = freshList.find((n) => !n.is_read);
-        if (latestUnread) {
-          setLiveToast(latestUnread);
-          playNotificationSound();
-          setTimeout(() => {
-            setLiveToast((current) => (current?.id === latestUnread.id ? null : current));
-          }, 5000);
-        }
-      }
-
       setNotifications(freshList);
-      initialNotifsLoaded.current = true;
+      autoClearPageNotifications(freshList);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     }
   };
+
+  // Auto-mark notifications as read if user is already on the page related to the notification
+  const autoClearPageNotifications = async (notifsList) => {
+    const list = notifsList || notifications;
+    if (!list || list.length === 0) return;
+
+    const currentPath = location.pathname;
+    const toClear = list.filter((n) => {
+      if (n.is_read) return false;
+      const target = getNotificationRedirect(n);
+      if (!target) return false;
+      return currentPath === target || currentPath.startsWith(target);
+    });
+
+    if (toClear.length > 0) {
+      const toClearIds = new Set(toClear.map((n) => n.id));
+      setNotifications((prev) =>
+        prev.map((n) => (toClearIds.has(n.id) ? { ...n, is_read: true } : n))
+      );
+      for (const notif of toClear) {
+        try {
+          await API.patch(`/notifications/${notif.id}/read`);
+        } catch (err) {}
+      }
+    }
+  };
+
+  // Auto-dismiss notification badges when navigating directly to the related page
+  useEffect(() => {
+    autoClearPageNotifications(notifications);
+  }, [location.pathname]);
 
   useEffect(() => {
     fetchNotifications();
@@ -253,7 +249,7 @@ export default function Layout() {
   };
 
   // Determine which admin page to navigate to based on notification content
-  const getNotificationRedirect = (notif) => {
+  function getNotificationRedirect(notif) {
     const title = (notif.title || "").toLowerCase();
     const msg = (notif.message || "").toLowerCase();
 
@@ -321,7 +317,21 @@ export default function Layout() {
 
     // ONLY redirect if there is an associated resource or request page
     if (redirectPath) {
-      navigate(redirectPath);
+      const combinedText = `${notif.title || ""} ${notif.message || ""}`;
+      const reqMatch = combinedText.match(/REQ-[\w\d-]+/i);
+      let highlightKey = reqMatch ? reqMatch[0] : null;
+
+      if (!highlightKey && redirectPath.includes("resource")) {
+        const resMatch = combinedText.match(/resource\s+([A-Za-z0-9_-]+)/i) ||
+                         combinedText.match(/\b([A-Z]{2,5}-\d+)\b/i);
+        highlightKey = resMatch ? resMatch[1] : null;
+      }
+
+      if (highlightKey) {
+        navigate(`${redirectPath}?highlight=${encodeURIComponent(highlightKey)}`);
+      } else {
+        navigate(redirectPath);
+      }
     }
   };
 
@@ -959,38 +969,6 @@ export default function Layout() {
           })}
         </div>
       </nav>
-
-      {/* Real-Time Live Toast Notification (Chat-like pop-up) */}
-      {liveToast && (
-        <div 
-          onClick={() => {
-            handleNotificationClick(liveToast);
-            setLiveToast(null);
-          }}
-          className="fixed top-5 right-5 z-50 flex items-start gap-3 bg-[#0F172A] text-white p-4 rounded-2xl shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-4 duration-300 max-w-sm cursor-pointer hover:bg-[#1E293B] transition"
-        >
-          <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl shrink-0 mt-0.5">
-            <Bell className="w-5 h-5 animate-pulse" />
-          </div>
-          <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="font-semibold text-xs text-white truncate">{liveToast.title}</h4>
-              <span className="text-[10px] text-indigo-400 uppercase tracking-wider font-bold">New</span>
-            </div>
-            <p className="text-[11px] text-gray-300 mt-1 line-clamp-2 leading-relaxed">{liveToast.message}</p>
-          </div>
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLiveToast(null);
-            }} 
-            className="text-gray-400 hover:text-white p-1"
-          >
-            <Xmark className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* Modern, Eye-Friendly In-App Confirmation Modal */}
       <ConfirmationModal

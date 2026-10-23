@@ -9,11 +9,20 @@ const generateRequestNumber = () => {
   return `REQ-${Date.now().toString().slice(-6)}`;
 };
 
-// Helper function to create system notifications
+// Helper function to create system notifications (with de-duplication to notify only once per task event)
 const sendNotification = async (targetUserId, title, message) => {
   try {
+    if (!targetUserId) return;
+    const dupCheck = await pool.query(
+      `SELECT id FROM notifications 
+       WHERE user_id = $1 AND title = $2 AND message = $3 AND created_at > NOW() - INTERVAL '1 minute'`,
+      [targetUserId, title, message]
+    );
+    if (dupCheck.rows.length > 0) {
+      return;
+    }
     await pool.query(
-      'INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)',
+      'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
       [targetUserId, title, message]
     );
     // Real-time: push new notification to all connected clients immediately

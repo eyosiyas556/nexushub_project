@@ -56,6 +56,7 @@ export default function StaffResources() {
       const data = response.data.resources || response.data || [];
       setResources(data);
       setCachedData("staff_resources", data);
+      setSelectedResource((prev) => (prev ? data.find((r) => r.id === prev.id) || prev : null));
     } catch (err) {
       console.error("Failed to fetch resources:", err);
     } finally {

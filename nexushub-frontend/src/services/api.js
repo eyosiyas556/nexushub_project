@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://nexushub-project-4.onrender.com/api' : 'http://localhost:5000/api');
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && !envUrl.includes('nexushub-project.onrender.com/api')) {
+    return envUrl;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const { origin, hostname } = window.location;
+    if (hostname.includes('onrender.com') && !hostname.includes('nexushub-project.')) {
+      return `${origin}/api`;
+    }
+  }
+  return import.meta.env.PROD 
+    ? 'https://nexushub-project-4.onrender.com/api' 
+    : 'http://localhost:5000/api';
+};
+
+const baseURL = getApiBaseUrl();
 
 const API = axios.create({
     baseURL,

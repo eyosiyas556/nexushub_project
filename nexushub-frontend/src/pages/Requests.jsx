@@ -44,6 +44,7 @@ export default function Requests() {
       const data = response.data || [];
       setRequests(data);
       setCachedData("admin_requests", data);
+      setSelectedRequest((prev) => (prev ? data.find((r) => r.id === prev.id) || prev : null));
     } catch (err) {
       console.error("Failed to fetch requests:", err);
     } finally {

@@ -46,6 +46,7 @@ export default function AssignedRequest() {
       const data = response.data || [];
       setAssignedRequests(data);
       setCachedData("staff_assigned_requests", data);
+      setSelectedRequest((prev) => (prev ? data.find((r) => r.id === prev.id) || prev : null));
     } catch (err) {
       console.error("Failed to fetch assigned requests:", err);
     } finally {
@@ -58,9 +59,11 @@ export default function AssignedRequest() {
 
     // Real-time: re-fetch whenever assigned requests change
     socket.on("requests_updated", fetchAssignedRequests);
+    socket.on("resources_updated", fetchAssignedRequests);
 
     return () => {
       socket.off("requests_updated", fetchAssignedRequests);
+      socket.off("resources_updated", fetchAssignedRequests);
     };
   }, [currentStaffName]);
 

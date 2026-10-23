@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { joinUserRoom } from '../services/socket';
 import { Eye, EyeClosed, ArrowLeft } from 'iconoir-react';
 
 export default function Login() {
@@ -67,6 +68,11 @@ export default function Login() {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.setItem('role', user.role);
+
+            // Connect socket to this user's channel for real-time alerts
+            if (user?.id) {
+                joinUserRoom(user.id);
+            }
 
             const role = (user.role || '').toLowerCase();
             if (role === 'staff') {

@@ -336,6 +336,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       // Real-time: broadcast to all clients
       getIO().emit('requests_updated');
       getIO().emit('resources_updated');
+      getIO().emit('notifications_updated');
       getIO().emit('dashboard_updated');
 
       return res.json({ success: true, message: 'Request updated successfully', data: rows[0] });

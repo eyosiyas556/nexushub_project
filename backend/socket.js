@@ -9,22 +9,29 @@ const init = (httpServer) => {
     cors: {
       origin: '*',
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      credentials: true,
     },
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
   io.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
-    socket.on('disconnect', () => {
-      console.log(`[Socket] Client disconnected: ${socket.id}`);
+    // Allow user clients to join their dedicated private room for targeted live updates
+    socket.on('join_user', (userId) => {
+      if (userId) {
+        socket.join(`user_${userId}`);
+        console.log(`[Socket] Client ${socket.id} joined room user_${userId}`);
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log(`[Socket] Client disconnected: ${socket.id} (${reason})`);
     });
   });
 
-  return io;
-};
-
-const getIO = () => {
-  if (!io) throw new Error('Socket.io not initialized. Call init() first.');
   return io;
 };
 
@@ -41,4 +48,30 @@ const emitEvent = (event, data) => {
   }
 };
 
-module.exports = { init, getIO, emitEvent };
+const emitToUser = (userId, event, data) => {
+  try {
+    if (io && userId) {
+      io.to(`user_${userId}`).emit(event, data);
+    }
+  } catch (err) {
+    console.error(`[Socket] Failed to emit '${event}' to user_${userId}:`, err.message);
+  }
+};
+
+const getIO = () => {
+  if (!io) {
+    console.warn('[Socket] getIO() accessed before initialization. Using safe fallback.');
+    return {
+      emit: (event, data) => emitEvent(event, data),
+      to: (room) => ({
+        emit: (event, data) => {
+          if (io) io.to(room).emit(event, data);
+        },
+      }),
+    };
+  }
+  return io;
+};
+
+module.exports = { init, getIO, emitEvent, emitToUser };
+

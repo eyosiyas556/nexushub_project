@@ -42,6 +42,7 @@ export default function Members() {
       const data = response.data || [];
       setMembers(data);
       setCachedData("admin_members", data);
+      setSelectedMember((prev) => (prev ? data.find((m) => m.id === prev.id) || prev : null));
     } catch (err) {
       console.error("Failed to fetch members:", err);
     } finally {

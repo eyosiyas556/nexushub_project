@@ -64,11 +64,13 @@ export default function StaffDashboard() {
     socket.on("dashboard_updated", fetchDashboardData);
     socket.on("requests_updated", fetchDashboardData);
     socket.on("resources_updated", fetchDashboardData);
+    socket.on("members_updated", fetchDashboardData);
 
     return () => {
       socket.off("dashboard_updated", fetchDashboardData);
       socket.off("requests_updated", fetchDashboardData);
       socket.off("resources_updated", fetchDashboardData);
+      socket.off("members_updated", fetchDashboardData);
     };
   }, []);
 

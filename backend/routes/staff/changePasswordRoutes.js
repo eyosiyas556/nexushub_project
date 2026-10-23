@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../../config/db");
 const bcrypt = require("bcrypt");
 const verifyToken = require("../../middleware/authMiddleware");
+const { getIO } = require("../../socket");
 
 // PUT /api/staff/change-password - Update user password securely for Admin and Staff
 router.put("/change-password", verifyToken, async (req, res) => {
@@ -52,6 +53,9 @@ router.put("/change-password", verifyToken, async (req, res) => {
       "INSERT INTO activity_logs (entity_type, action, description, created_at) VALUES ($1, $2, $3, NOW())",
       ["User", "Password Change", `${user.role || 'User'} (${user.email}) successfully updated their password.`]
     );
+
+    // Real-time: notify dashboard
+    getIO().emit('dashboard_updated');
 
     res.json({ success: true, message: "Password updated successfully." });
 

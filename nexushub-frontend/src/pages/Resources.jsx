@@ -52,6 +52,7 @@ export default function Resources() {
       const data = response.data || [];
       setResources(data);
       setCachedData("admin_resources", data);
+      setSelectedResource((prev) => (prev ? data.find((r) => r.id === prev.id) || prev : null));
     } catch (err) {
       console.error("Failed to fetch resources:", err);
     } finally {

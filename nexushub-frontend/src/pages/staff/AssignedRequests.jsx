@@ -7,10 +7,20 @@ import { Eye, CheckCircle, Xmark, EditPencil, Clock } from "iconoir-react";
 import ActionMenu from "../../components/ActionMenu";
 import { getCachedData, setCachedData } from "../../services/cache";
 
+const parseSafeDate = (timestamp) => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  let str = String(timestamp).trim();
+  if (!str.endsWith('Z') && !str.includes('+') && !str.includes('GMT')) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? new Date(timestamp) : d;
+};
+
 const formatDate = (timestamp) => {
-  if (!timestamp) return "N/A";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "N/A";
+  const date = parseSafeDate(timestamp);
+  if (!date || isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -19,9 +29,8 @@ const formatDate = (timestamp) => {
 };
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "";
+  const date = parseSafeDate(timestamp);
+  if (!date || isNaN(date.getTime())) return "";
   return date.toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -121,9 +130,21 @@ export default function AssignedRequest() {
     socket.on("requests_updated", fetchAssignedRequests);
     socket.on("resources_updated", fetchAssignedRequests);
 
+    // Resilient fallback sync between devices (Phone/PC)
+    const handleSync = () => fetchAssignedRequests();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") handleSync();
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const syncInterval = setInterval(handleSync, 7000);
+
     return () => {
       socket.off("requests_updated", fetchAssignedRequests);
       socket.off("resources_updated", fetchAssignedRequests);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(syncInterval);
     };
   }, [currentStaffName]);
 

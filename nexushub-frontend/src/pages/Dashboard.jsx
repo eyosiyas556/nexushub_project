@@ -75,11 +75,22 @@ export default function Dashboard() {
     socket.on("members_updated", fetchDashboardData);
     socket.on("resources_updated", fetchDashboardData);
 
+    const handleSync = () => fetchDashboardData();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") handleSync();
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const syncInterval = setInterval(handleSync, 8000);
+
     return () => {
       socket.off("dashboard_updated", fetchDashboardData);
       socket.off("requests_updated", fetchDashboardData);
       socket.off("members_updated", fetchDashboardData);
       socket.off("resources_updated", fetchDashboardData);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(syncInterval);
     };
   }, []);
 

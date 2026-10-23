@@ -125,6 +125,14 @@ export default function Layout() {
     socket.on("notifications_updated", handleLiveNotifications);
     socket.on("members_updated", handleMembersUpdated);
 
+    // Resilient fallback sync between devices (Phone/PC)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    window.addEventListener("focus", fetchNotifications);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const notifInterval = setInterval(fetchNotifications, 10000);
+
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -143,6 +151,9 @@ export default function Layout() {
       document.removeEventListener("mousedown", handleClickOutside);
       socket.off("notifications_updated", handleLiveNotifications);
       socket.off("members_updated", handleMembersUpdated);
+      window.removeEventListener("focus", fetchNotifications);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(notifInterval);
     };
   }, []);
 

@@ -7,11 +7,15 @@ const init = (httpServer) => {
   const { Server } = require('socket.io');
   io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: (requestOrigin, callback) => {
+        // Dynamically echo requesting origin (mobile/web) for CORS compliance with credentials
+        callback(null, true);
+      },
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
       credentials: true,
     },
     transports: ['websocket', 'polling'],
+    allowUpgrades: true,
     pingTimeout: 60000,
     pingInterval: 25000,
   });

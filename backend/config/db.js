@@ -1,6 +1,16 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Parse PostgreSQL TIMESTAMP WITHOUT TIME ZONE (OID 1114) as UTC Date
+// This guarantees timestamps match the exact UTC time stored by CURRENT_TIMESTAMP
+// and prevents the node-postgres driver from shifting times by local system timezone offsets.
+types.setTypeParser(1114, (str) => {
+  return str ? new Date(str.replace(' ', 'T') + 'Z') : null;
+});
+types.setTypeParser(1184, (str) => {
+  return str ? new Date(str) : null;
+});
 
 // Sanitize connection string: remove channel_binding if present (causes unexpected termination in node-postgres with Neon pooler)
 let connectionString = process.env.DATABASE_URL || '';

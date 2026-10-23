@@ -8,10 +8,20 @@ import ConfirmationModal from "../components/ConfirmationModal";
 import ActionMenu from "../components/ActionMenu";
 import { getCachedData, setCachedData } from "../services/cache";
 
+const parseSafeDate = (timestamp) => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  let str = String(timestamp).trim();
+  if (!str.endsWith('Z') && !str.includes('+') && !str.includes('GMT')) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? new Date(timestamp) : d;
+};
+
 const formatDate = (timestamp) => {
-  if (!timestamp) return "N/A";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "N/A";
+  const date = parseSafeDate(timestamp);
+  if (!date || isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -20,9 +30,8 @@ const formatDate = (timestamp) => {
 };
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "";
+  const date = parseSafeDate(timestamp);
+  if (!date || isNaN(date.getTime())) return "";
   return date.toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -123,10 +132,21 @@ export default function Requests() {
     socket.on("members_updated", fetchRequests);
     socket.on("resources_updated", fetchRequests);
 
+    // Resilient fallback sync between devices (Phone/PC)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchRequests();
+    };
+    window.addEventListener("focus", fetchRequests);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const syncInterval = setInterval(fetchRequests, 7000);
+
     return () => {
       socket.off("requests_updated", fetchRequests);
       socket.off("members_updated", fetchRequests);
       socket.off("resources_updated", fetchRequests);
+      window.removeEventListener("focus", fetchRequests);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(syncInterval);
     };
   }, []);
 

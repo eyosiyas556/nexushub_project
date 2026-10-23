@@ -56,8 +56,19 @@ export default function Members() {
     // Real-time: re-fetch whenever members data changes
     socket.on("members_updated", fetchMembers);
 
+    const handleSync = () => fetchMembers();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") handleSync();
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const syncInterval = setInterval(handleSync, 8000);
+
     return () => {
       socket.off("members_updated", fetchMembers);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(syncInterval);
     };
   }, []);
 

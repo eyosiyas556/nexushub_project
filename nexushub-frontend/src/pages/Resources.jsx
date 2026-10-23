@@ -97,9 +97,20 @@ export default function Resources() {
     socket.on("resources_updated", fetchResources);
     socket.on("requests_updated", fetchResources);
 
+    const handleSync = () => fetchResources();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") handleSync();
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleVisibility);
+    const syncInterval = setInterval(handleSync, 7000);
+
     return () => {
       socket.off("resources_updated", fetchResources);
       socket.off("requests_updated", fetchResources);
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(syncInterval);
     };
   }, []);
 

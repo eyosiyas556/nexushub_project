@@ -15,7 +15,10 @@ const { init: initSocket } = require('./socket');
 initSocket(server);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true,
+}));
 app.use(express.json());
 
 // Keep-alive & Health Check endpoint for uptime pingers (prevents Render & Neon cold-starts)

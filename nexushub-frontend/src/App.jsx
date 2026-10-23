@@ -30,8 +30,8 @@ export default function App() {
     <Router>
       <Suspense fallback={<GenericPageSkeleton />}>
         <Routes>
-          {/* Root Path: Automatically routes portfolio visitors directly to the Admin Dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Root & Login Paths */}
+          <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
 
           {/* PROTECTED ADMIN SECTION: Wrapped so ONLY Administrators can view any of these pages */}

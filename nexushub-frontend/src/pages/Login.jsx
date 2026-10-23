@@ -13,7 +13,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [isWakingServer, setIsWakingServer] = useState(false);
 
-    // Forgot Password Flow States (now using email instead of phone)
+    // Forgot Password Flow States
     const [authView, setAuthView] = useState('login'); 
     const [resetEmail, setResetEmail] = useState('');
     const [otp, setOtp] = useState('');
@@ -49,20 +49,22 @@ export default function Login() {
         return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     };
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const executeLogin = async (loginEmail, loginPassword) => {
         setError('');
         setSuccessMsg('');
         setLoading(true);
         setIsWakingServer(false);
 
-        // Show waking notice if request takes > 2.5 seconds
+        // Show waking notice if request takes > 2.5 seconds (Render free tier spin-up)
         const wakeTimer = setTimeout(() => {
             setIsWakingServer(true);
         }, 2500);
 
         try {
-            const response = await API.post('/auth/login', { email, password });
+            const response = await API.post('/auth/login', { 
+                email: loginEmail, 
+                password: loginPassword 
+            });
             const { token, user } = response.data;
 
             localStorage.setItem('token', token);
@@ -89,31 +91,15 @@ export default function Login() {
         }
     };
 
-    const handleDemoLogin = async (roleType) => {
-        setError('');
-        setSuccessMsg('');
-        setLoading(true);
-        try {
-            const endpoint = roleType === 'staff' ? '/auth/demo-staff' : '/auth/demo-admin';
-            const res = await API.get(endpoint);
-            const { token, user } = res.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('role', user.role);
-            if (user?.id) {
-                joinUserRoom(user.id);
-            }
-            if (roleType === 'staff') {
-                navigate('/staff/dashboard');
-            } else {
-                navigate('/dashboard');
-            }
-        } catch (err) {
-            console.error("Demo login error:", err);
-            setError(err.response?.data?.error || err.message || 'Failed to establish demo session.');
-        } finally {
-            setLoading(false);
-        }
+    const handleLogin = (e) => {
+        e.preventDefault();
+        executeLogin(email, password);
+    };
+
+    const handleQuickLogin = (quickEmail, quickPassword) => {
+        setEmail(quickEmail);
+        setPassword(quickPassword);
+        executeLogin(quickEmail, quickPassword);
     };
 
     const handleSendOtp = async (e) => {
@@ -170,7 +156,7 @@ export default function Login() {
             <div className="bg-[#FFFFFF] border border-gray-100 rounded-3xl shadow-xl overflow-hidden max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 relative">
                 
                 {/* Left Side Banner */}
-                <div className="relative relative bg-gradient-to-tr from-[#0F172A] to-[#1E293B] p-10 md:p-12 text-white flex flex-col justify-between overflow-hidden hidden md:flex flex flex-col justify-between overflow-hidden hidden md:flex">
+                <div className="relative bg-gradient-to-tr from-[#0F172A] to-[#1E293B] p-8 md:p-12 text-white flex flex-col justify-between overflow-hidden hidden md:flex">
                     <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-black rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
                     <div className="absolute bottom-10 right-[-40px] w-48 h-48 bg-slate-800 rounded-full mix-blend-multiply filter blur-lg opacity-60"></div>
 
@@ -188,7 +174,7 @@ export default function Login() {
                 </div>
 
                 {/* Right Side Forms */}
-                <div className="p-5 sm:p-8 md:p-12 flex flex-col justify-center bg-[#FFFFFF]">
+                <div className="p-5 sm:p-8 md:p-10 flex flex-col justify-center bg-[#FFFFFF]">
                     
                     {error && (
                         <div className="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl mb-4 text-xs font-medium">
@@ -205,19 +191,19 @@ export default function Login() {
                     {isWakingServer && (
                         <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl mb-4 text-xs font-medium flex items-center space-x-2 animate-pulse">
                             <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping mr-1"></span>
-                            <span>Connecting to server... Server is spinning up from standby, please wait a moment.</span>
+                            <span>Connecting to server... Server is spinning up, please wait a moment.</span>
                         </div>
                     )}
 
                     {/* VIEW 1: LOGIN */}
                     {authView === 'login' && (
                         <>
-                            <div className="mb-6">
+                            <div className="mb-5">
                                 <h3 className="text-2xl font-bold text-[#0F172A]">Sign in</h3>
                                 <p className="text-xs text-[#64748B] mt-1">Please enter your credentials to access the system.</p>
                             </div>
 
-                            <form onSubmit={handleLogin} className="space-y-4">
+                            <form onSubmit={handleLogin} className="space-y-3.5">
                                 <div>
                                     <label className="block text-xs font-medium text-[#64748B] mb-1">Email Address</label>
                                     <input
@@ -268,42 +254,97 @@ export default function Login() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full py-3 bg-[#0F172A] hover:bg-black rounded-xl font-semibold transition duration-200 text-white text-sm shadow-md mt-2 cursor-pointer disabled:opacity-50"
+                                    className="w-full py-2.5 bg-[#0F172A] hover:bg-black rounded-xl font-semibold transition duration-200 text-white text-sm shadow-md mt-1 cursor-pointer disabled:opacity-50"
                                 >
                                     {loading ? "Signing in..." : "Sign in"}
                                 </button>
+                            </form>
 
-                                <div className="pt-4 border-t border-gray-100 space-y-2 mt-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
-                                            Quick Portfolio Demo Access
-                                        </p>
-                                        <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">
-                                            1-Click Login
-                                        </span>
+                            {/* Portfolio Demo Credentials Card */}
+                            <div className="mt-5 pt-4 border-t border-slate-100">
+                                <div className="flex items-center justify-between mb-2.5">
+                                    <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                                        Portfolio Demo Credentials
+                                    </p>
+                                    <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">
+                                        Reviewer Access
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {/* Admin Card */}
+                                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col justify-between hover:border-slate-300 transition">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[11px] font-bold text-slate-900">Administrator</span>
+                                                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">Full</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 font-mono select-all truncate" title="eyosiyasfisseha51@gmail.com">
+                                                eyosiyasfisseha51@gmail.com
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                                                Pass: <span className="font-semibold text-slate-800">admin123</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEmail('eyosiyasfisseha51@gmail.com');
+                                                    setPassword('admin123');
+                                                }}
+                                                className="flex-1 py-1 px-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-medium text-slate-700 transition cursor-pointer text-center"
+                                            >
+                                                Auto-fill
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={loading}
+                                                onClick={() => handleQuickLogin('eyosiyasfisseha51@gmail.com', 'admin123')}
+                                                className="flex-1 py-1 px-1.5 bg-[#0F172A] hover:bg-black rounded-lg text-[10px] font-semibold text-white transition cursor-pointer disabled:opacity-50 text-center shadow-xs"
+                                            >
+                                                Sign in
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDemoLogin('admin')}
-                                            disabled={loading}
-                                            className="py-2.5 px-3 bg-[#0F172A] hover:bg-black text-white border border-gray-900 rounded-xl text-xs font-bold transition text-center cursor-pointer disabled:opacity-50 shadow-sm flex flex-col items-center justify-center gap-0.5"
-                                        >
-                                            <span>Demo Admin</span>
-                                            <span className="text-[10px] text-slate-400 font-normal">Full Dashboard Access</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDemoLogin('staff')}
-                                            disabled={loading}
-                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs flex flex-col items-center justify-center gap-0.5"
-                                        >
-                                            <span>Demo Staff</span>
-                                            <span className="text-[10px] text-slate-500 font-normal">Staff Portal Access</span>
-                                        </button>
+
+                                    {/* Staff Card */}
+                                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col justify-between hover:border-slate-300 transition">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[11px] font-bold text-slate-900">Staff</span>
+                                                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Portal</span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 font-mono select-all truncate" title="fiker51@gmail.com">
+                                                fiker51@gmail.com
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                                                Pass: <span className="font-semibold text-slate-800">fiker123</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-1 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEmail('fiker51@gmail.com');
+                                                    setPassword('fiker123');
+                                                }}
+                                                className="flex-1 py-1 px-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-medium text-slate-700 transition cursor-pointer text-center"
+                                            >
+                                                Auto-fill
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={loading}
+                                                onClick={() => handleQuickLogin('fiker51@gmail.com', 'fiker123')}
+                                                className="flex-1 py-1 px-1.5 bg-slate-800 hover:bg-slate-900 rounded-lg text-[10px] font-semibold text-white transition cursor-pointer disabled:opacity-50 text-center shadow-xs"
+                                            >
+                                                Sign in
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </form>
+                            </div>
                         </>
                     )}
 

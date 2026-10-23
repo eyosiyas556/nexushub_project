@@ -118,12 +118,25 @@ export default function Requests() {
   const fetchAssignableStaff = async (requestId) => {
     try {
       const response = await API.get(`/requests/${requestId}/assignable-staff`);
-      setTeamMembers(response.data || []);
+      if (response.data && response.data.length > 0) {
+        setTeamMembers(response.data);
+      }
     } catch (err) {
       console.error("Failed to fetch assignable staff members:", err);
-      setTeamMembers([]);
     }
   };
+
+  // Pre-fetch team members in background on page load so Assign modal opens instantly
+  useEffect(() => {
+    const cachedMembers = getCachedData("admin_members");
+    if (!cachedMembers || cachedMembers.length === 0) {
+      API.get("/members")
+        .then((res) => {
+          if (res.data) setCachedData("admin_members", res.data);
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   // Handle direct Approve for Equipment / Resource requests
   const handleApprove = async (req) => {
@@ -233,7 +246,7 @@ export default function Requests() {
     setIsViewModalOpen(true);
   };
 
-  const openAssignModal = async (req) => {
+  const openAssignModal = (req) => {
     setSelectedRequest(req);
     setAssignData({
       assigned_to: req.assigned_to || "",
@@ -241,9 +254,26 @@ export default function Requests() {
       rejection_reason: req.rejection_reason || "",
       priority: req.priority || "Medium",
     });
-    // Fetch staff members excluding the requester & admins for this specific request
-    await fetchAssignableStaff(req.id);
+
+    // Populate instantly from cache so there is 0ms delay
+    const cachedMembers = getCachedData("admin_members");
+    if (cachedMembers && cachedMembers.length > 0) {
+      const eligibleStaff = cachedMembers.filter(
+        (m) =>
+          (m.role || "").toLowerCase() === "staff" &&
+          m.id !== req.user_id &&
+          m.name?.trim().toLowerCase() !== (req.requested_by || "").trim().toLowerCase()
+      );
+      if (eligibleStaff.length > 0) {
+        setTeamMembers(eligibleStaff);
+      }
+    }
+
+    // Open modal IMMEDIATELY without waiting for network request
     setIsAssignModalOpen(true);
+
+    // Refresh fresh eligible staff in background
+    fetchAssignableStaff(req.id);
   };
 
   const filteredRequests = requests.filter((req) => {
@@ -699,6 +729,11 @@ export default function Requests() {
                   className="w-full px-3 py-2 border rounded-xl text-xs bg-white"
                 >
                   <option value="">-- Select Team Member --</option>
+                  {assignData.assigned_to && !teamMembers.some((m) => m.name === assignData.assigned_to) && (
+                    <option value={assignData.assigned_to}>
+                      {assignData.assigned_to}
+                    </option>
+                  )}
                   {teamMembers.map((member) => (
                     <option key={member.id} value={member.name}>
                       {member.name}

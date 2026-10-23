@@ -263,26 +263,24 @@ export default function Layout() {
     return null;
   };
 
-  // Mark notification as read and redirect only if associated with resources or requests
-  const handleNotificationClick = async (notif) => {
+  // Mark notification as read and redirect immediately with zero lag
+  const handleNotificationClick = (notif) => {
     const redirectPath = getNotificationRedirect(notif);
 
-    // Mark as read if still unread
-    if (!notif.is_read) {
-      try {
-        await API.patch(`/notifications/${notif.id}/read`);
-        setNotifications(
-          notifications.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
-        );
-      } catch (err) {
-        console.error("Failed to mark notification as read:", err);
-      }
-    }
-
-    // Close panel
+    // 1. Instantly close notification panel
     setIsNotifOpen(false);
 
-    // ONLY redirect if there is an associated resource or request page
+    // 2. Instantly update read indicator locally & sync in background
+    if (!notif.is_read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
+      );
+      API.patch(`/notifications/${notif.id}/read`).catch((err) => {
+        console.error("Failed to mark notification as read:", err);
+      });
+    }
+
+    // 3. Instantly redirect if associated with resources or requests
     if (redirectPath) {
       const combinedText = `${notif.title || ""} ${notif.message || ""}`;
       const reqMatch = combinedText.match(/REQ-[\w\d-]+/i);

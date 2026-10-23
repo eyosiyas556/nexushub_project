@@ -305,27 +305,16 @@ export default function Resources() {
                       <td className="py-4 px-6 space-y-1">
                         <div>
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                               res.status === "Available"
-                                ? "bg-[#E6F4EA] text-[#137333]"
+                                ? "text-[#137333]"
                                 : res.status === "In Use"
-                                ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                ? "text-[#1A73E8]"
                                 : res.status === "Maintenance"
-                                ? "bg-[#FEF7E0] text-[#B06000]"
-                                : "bg-[#F1F3F4] text-[#5F6368]"
+                                ? "text-[#B06000]"
+                                : "text-[#5F6368]"
                             }`}
                           >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                res.status === "Available"
-                                  ? "bg-[#137333]"
-                                  : res.status === "In Use"
-                                  ? "bg-[#1A73E8]"
-                                  : res.status === "Maintenance"
-                                  ? "bg-[#B06000]"
-                                  : "bg-[#5F6368]"
-                              }`}
-                            />
                             {res.status}
                           </span>
                         </div>
@@ -587,27 +576,16 @@ export default function Resources() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                     selectedResource.status === "Available"
-                      ? "bg-[#E6F4EA] text-[#137333]"
+                      ? "text-[#137333]"
                       : selectedResource.status === "In Use"
-                      ? "bg-[#E8F0FE] text-[#1A73E8]"
+                      ? "text-[#1A73E8]"
                       : selectedResource.status === "Maintenance"
-                      ? "bg-[#FEF7E0] text-[#B06000]"
-                      : "bg-[#F1F3F4] text-[#5F6368]"
+                      ? "text-[#B06000]"
+                      : "text-[#5F6368]"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      selectedResource.status === "Available"
-                        ? "bg-[#137333]"
-                        : selectedResource.status === "In Use"
-                        ? "bg-[#1A73E8]"
-                        : selectedResource.status === "Maintenance"
-                        ? "bg-[#B06000]"
-                        : "bg-[#5F6368]"
-                    }`}
-                  />
                   {selectedResource.status}
                 </span>
               </div>

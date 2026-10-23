@@ -317,33 +317,19 @@ export default function StaffDashboard() {
                       {req.title || `Request #${req.id}`}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#e5e7eb] ${
                         req.status === "Approved" ||
                         req.status === "Completed" ||
                         req.status === "Resolved" ||
                         req.status === "Closed"
-                          ? "bg-[#E6F4EA] text-[#137333]"
+                          ? "text-[#137333]"
                           : req.status === "In Progress"
-                          ? "bg-[#E8F0FE] text-[#1A73E8]"
+                          ? "text-[#1A73E8]"
                           : req.status === "Rejected"
-                          ? "bg-[#FCE8E6] text-[#C5221F]"
-                          : "bg-[#FEF7E0] text-[#B06000]"
+                          ? "text-[#C5221F]"
+                          : "text-[#B06000]"
                       }`}
                     >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          req.status === "Approved" ||
-                          req.status === "Completed" ||
-                          req.status === "Resolved" ||
-                          req.status === "Closed"
-                            ? "bg-[#137333]"
-                            : req.status === "In Progress"
-                            ? "bg-[#1A73E8]"
-                            : req.status === "Rejected"
-                            ? "bg-[#C5221F]"
-                            : "bg-[#B06000]"
-                        }`}
-                      />
                       {req.status}
                     </span>
                   </div>
@@ -360,27 +346,16 @@ export default function StaffDashboard() {
                     <span className="flex items-center gap-1.5">
                       Priority:{" "}
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#e5e7eb] ${
                           req.priority === "Urgent"
-                            ? "bg-[#FCE8E6] text-[#C5221F]"
+                            ? "text-[#C5221F]"
                             : req.priority === "High"
-                            ? "bg-[#FEF7E0] text-[#B06000]"
+                            ? "text-[#B06000]"
                             : req.priority === "Medium"
-                            ? "bg-[#E8F0FE] text-[#1A73E8]"
-                            : "bg-[#F1F3F4] text-[#5F6368]"
+                            ? "text-[#1A73E8]"
+                            : "text-[#5F6368]"
                         }`}
                       >
-                        <span
-                          className={`w-1 h-1 rounded-full shrink-0 ${
-                            req.priority === "Urgent"
-                              ? "bg-[#C5221F]"
-                              : req.priority === "High"
-                              ? "bg-[#B06000]"
-                              : req.priority === "Medium"
-                              ? "bg-[#1A73E8]"
-                              : "bg-[#5F6368]"
-                          }`}
-                        />
                         {req.priority || "Medium"}
                       </span>
                     </span>
@@ -577,7 +552,7 @@ export default function StaffDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#E8F0FE] text-[#1A73E8]">
+                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#e5e7eb] text-[#1A73E8]">
                         {res.status || "In Use"}
                       </span>
                       <button

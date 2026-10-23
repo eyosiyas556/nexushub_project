@@ -272,19 +272,12 @@ export default function Members() {
                       </td>
                       <td className="py-4 px-6 font-medium">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                             member.status === "Active"
-                              ? "bg-[#E6F4EA] text-[#137333]"
-                              : "bg-[#F1F3F4] text-[#5F6368]"
+                              ? "text-[#137333]"
+                              : "text-[#5F6368]"
                           }`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                              member.status === "Active"
-                                ? "bg-[#137333]"
-                                : "bg-[#5F6368]"
-                            }`}
-                          />
                           {member.status}
                         </span>
                       </td>
@@ -591,19 +584,12 @@ export default function Members() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                     selectedMember.status === "Active"
-                      ? "bg-[#E6F4EA] text-[#137333]"
-                      : "bg-[#F1F3F4] text-[#5F6368]"
+                      ? "text-[#137333]"
+                      : "text-[#5F6368]"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      selectedMember.status === "Active"
-                        ? "bg-[#137333]"
-                        : "bg-[#5F6368]"
-                    }`}
-                  />
                   {selectedMember.status}
                 </span>
               </div>

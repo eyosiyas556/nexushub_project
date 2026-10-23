@@ -348,81 +348,48 @@ export default function Requests() {
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                               req.priority === "Urgent"
-                                ? "bg-[#FCE8E6] text-[#C5221F]"
+                                ? "text-[#C5221F]"
                                 : req.priority === "High"
-                                ? "bg-[#FEF7E0] text-[#B06000]"
+                                ? "text-[#B06000]"
                                 : req.priority === "Medium"
-                                ? "bg-[#E8F0FE] text-[#1A73E8]"
-                                : "bg-[#F1F3F4] text-[#5F6368]"
+                                ? "text-[#1A73E8]"
+                                : "text-[#5F6368]"
                             }`}
                           >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                req.priority === "Urgent"
-                                  ? "bg-[#C5221F]"
-                                  : req.priority === "High"
-                                  ? "bg-[#B06000]"
-                                  : req.priority === "Medium"
-                                  ? "bg-[#1A73E8]"
-                                  : "bg-[#5F6368]"
-                              }`}
-                            />
                             {req.priority || "Medium"}
                           </span>
                         </td>
-                        {/* Status Column without background */}
+                        {/* Status Column */}
                         <td className="py-4 px-6">
                           {isEquipment ? (
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                                 req.status === "Approved" || req.status === "Completed"
-                                  ? "bg-[#E6F4EA] text-[#137333]"
+                                  ? "text-[#137333]"
                                   : req.status === "Rejected"
-                                  ? "bg-[#FCE8E6] text-[#C5221F]"
+                                  ? "text-[#C5221F]"
                                   : req.status === "In Progress"
-                                  ? "bg-[#E8F0FE] text-[#1A73E8]"
-                                  : "bg-[#FEF7E0] text-[#B06000]"
+                                  ? "text-[#1A73E8]"
+                                  : "text-[#B06000]"
                               }`}
                             >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                  req.status === "Approved" || req.status === "Completed"
-                                    ? "bg-[#137333]"
-                                    : req.status === "Rejected"
-                                    ? "bg-[#C5221F]"
-                                    : req.status === "In Progress"
-                                    ? "bg-[#1A73E8]"
-                                    : "bg-[#B06000]"
-                                }`}
-                              />
                               {req.status || "Pending"}
                             </span>
                           ) : (
                             <div className="space-y-0.5">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                                   req.status === "Approved" || req.status === "Resolved" || req.status === "Closed" || req.status === "Completed"
-                                    ? "bg-[#E6F4EA] text-[#137333]"
+                                    ? "text-[#137333]"
                                     : req.status === "Rejected"
-                                    ? "bg-[#FCE8E6] text-[#C5221F]"
+                                    ? "text-[#C5221F]"
                                     : req.status === "In Progress"
-                                    ? "bg-[#E8F0FE] text-[#1A73E8]"
-                                    : "bg-[#FEF7E0] text-[#B06000]"
+                                    ? "text-[#1A73E8]"
+                                    : "text-[#B06000]"
                                 }`}
                               >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                    req.status === "Approved" || req.status === "Resolved" || req.status === "Closed" || req.status === "Completed"
-                                      ? "bg-[#137333]"
-                                      : req.status === "Rejected"
-                                      ? "bg-[#C5221F]"
-                                      : req.status === "In Progress"
-                                      ? "bg-[#1A73E8]"
-                                      : "bg-[#B06000]"
-                                  }`}
-                                />
                                 {req.status || "Pending"}
                               </span>
                               <p className="text-[11px] font-medium text-slate-500">
@@ -591,54 +558,32 @@ export default function Requests() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Priority:</strong>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                     selectedRequest.priority === "Urgent"
-                      ? "bg-[#FCE8E6] text-[#C5221F]"
+                      ? "text-[#C5221F]"
                       : selectedRequest.priority === "High"
-                      ? "bg-[#FEF7E0] text-[#B06000]"
+                      ? "text-[#B06000]"
                       : selectedRequest.priority === "Medium"
-                      ? "bg-[#E8F0FE] text-[#1A73E8]"
-                      : "bg-[#F1F3F4] text-[#5F6368]"
+                      ? "text-[#1A73E8]"
+                      : "text-[#5F6368]"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      selectedRequest.priority === "Urgent"
-                        ? "bg-[#C5221F]"
-                        : selectedRequest.priority === "High"
-                        ? "bg-[#B06000]"
-                        : selectedRequest.priority === "Medium"
-                        ? "bg-[#1A73E8]"
-                        : "bg-[#5F6368]"
-                    }`}
-                  />
                   {selectedRequest.priority || "Medium"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
                     selectedRequest.status === "Resolved" || selectedRequest.status === "Closed" || selectedRequest.status === "Approved" || selectedRequest.status === "Completed"
-                      ? "bg-[#E6F4EA] text-[#137333]"
+                      ? "text-[#137333]"
                       : selectedRequest.status === "Rejected"
-                      ? "bg-[#FCE8E6] text-[#C5221F]"
+                      ? "text-[#C5221F]"
                       : selectedRequest.status === "In Progress"
-                      ? "bg-[#E8F0FE] text-[#1A73E8]"
-                      : "bg-[#FEF7E0] text-[#B06000]"
+                      ? "text-[#1A73E8]"
+                      : "text-[#B06000]"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      selectedRequest.status === "Resolved" || selectedRequest.status === "Closed" || selectedRequest.status === "Approved" || selectedRequest.status === "Completed"
-                        ? "bg-[#137333]"
-                        : selectedRequest.status === "Rejected"
-                        ? "bg-[#C5221F]"
-                        : selectedRequest.status === "In Progress"
-                        ? "bg-[#1A73E8]"
-                        : "bg-[#B06000]"
-                    }`}
-                  />
                   {selectedRequest.status}
                 </span>
               </div>

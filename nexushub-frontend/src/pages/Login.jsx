@@ -89,6 +89,32 @@ export default function Login() {
         }
     };
 
+    const handleDemoLogin = async (roleType) => {
+        setError('');
+        setSuccessMsg('');
+        setLoading(true);
+        try {
+            const endpoint = roleType === 'staff' ? '/auth/demo-staff' : '/auth/demo-admin';
+            const res = await API.get(endpoint);
+            const { token, user } = res.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('role', user.role);
+            if (user?.id) {
+                joinUserRoom(user.id);
+            }
+            if (roleType === 'staff') {
+                navigate('/staff/dashboard');
+            } else {
+                navigate('/dashboard');
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to establish demo session.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSendOtp = async (e) => {
         e.preventDefault();
         setError('');
@@ -245,6 +271,30 @@ export default function Login() {
                                 >
                                     {loading ? "Signing in..." : "Sign in"}
                                 </button>
+
+                                <div className="pt-4 border-t border-gray-100 space-y-2 mt-4">
+                                    <p className="text-[11px] font-semibold text-[#64748B] text-center uppercase tracking-wider">
+                                        Portfolio Live Demo
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDemoLogin('admin')}
+                                            disabled={loading}
+                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs"
+                                        >
+                                            Demo Admin
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDemoLogin('staff')}
+                                            disabled={loading}
+                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs"
+                                        >
+                                            Demo Staff
+                                        </button>
+                                    </div>
+                                </div>
                             </form>
                         </>
                     )}

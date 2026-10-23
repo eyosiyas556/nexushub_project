@@ -719,6 +719,26 @@ export default function StaffLayout() {
                     <span>Profile Settings</span>
                   </button>
 
+                  <button
+                    onClick={async () => {
+                      setDropdownOpen(false);
+                      try {
+                        const res = await API.get('/auth/demo-admin');
+                        const { token, user } = res.data;
+                        localStorage.setItem('token', token);
+                        localStorage.setItem('user', JSON.stringify(user));
+                        localStorage.setItem('role', user.role);
+                        window.location.href = '/dashboard';
+                      } catch {
+                        navigate('/login');
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-blue-400 hover:bg-blue-500/10 transition-all text-left font-medium cursor-pointer"
+                  >
+                    <Flash className="w-4 h-4 text-blue-400" />
+                    <span>Switch to Admin View</span>
+                  </button>
+
                   <div className="h-[1px] bg-white/10 my-1"></div>
 
                   <button

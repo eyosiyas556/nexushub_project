@@ -52,6 +52,86 @@ const handleAvatarUpload = (req, res, next) => {
     });
 };
 
+// Portfolio Demo Session Route - Instant guest login for portfolio visitors
+router.get('/demo-admin', async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT * FROM users WHERE LOWER(role) = 'administrator' AND status = 'Active' ORDER BY id ASC LIMIT 1"
+        );
+        let adminUser = result.rows[0];
+
+        if (!adminUser) {
+            const fallback = await pool.query("SELECT * FROM users WHERE status = 'Active' ORDER BY id ASC LIMIT 1");
+            adminUser = fallback.rows[0];
+        }
+
+        if (!adminUser) {
+            return res.status(404).json({ error: 'No active demo administrator found.' });
+        }
+
+        const token = jwt.sign(
+            { id: adminUser.id, role: adminUser.role, email: adminUser.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            message: 'Portfolio demo session established',
+            token,
+            user: {
+                id: adminUser.id,
+                name: adminUser.name,
+                email: adminUser.email,
+                role: adminUser.role,
+                department: adminUser.department,
+                phone: adminUser.phone,
+                status: adminUser.status,
+                profile_picture: adminUser.profile_picture
+            }
+        });
+    } catch (err) {
+        console.error("Demo admin error:", err.message);
+        res.status(500).json({ error: 'Server error creating demo admin session.' });
+    }
+});
+
+// Portfolio Demo Session Route - Instant guest staff login
+router.get('/demo-staff', async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT * FROM users WHERE LOWER(role) = 'staff' AND status = 'Active' ORDER BY id ASC LIMIT 1"
+        );
+        const staffUser = result.rows[0];
+        if (!staffUser) {
+            return res.status(404).json({ error: 'No active demo staff found.' });
+        }
+
+        const token = jwt.sign(
+            { id: staffUser.id, role: staffUser.role, email: staffUser.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            message: 'Portfolio demo staff session established',
+            token,
+            user: {
+                id: staffUser.id,
+                name: staffUser.name,
+                email: staffUser.email,
+                role: staffUser.role,
+                department: staffUser.department,
+                phone: staffUser.phone,
+                status: staffUser.status,
+                profile_picture: staffUser.profile_picture
+            }
+        });
+    } catch (err) {
+        console.error("Demo staff error:", err.message);
+        res.status(500).json({ error: 'Server error creating demo staff session.' });
+    }
+});
+
 // Login Route
 router.post('/login', async (req, res) => {
     try {

@@ -36,15 +36,23 @@ router.get('/', verifyToken, async (req, res) => {
                SELECT wr.requested_by 
                FROM work_requests wr 
                WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
-                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned', 'pending')
+                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned')
                ORDER BY wr.id DESC 
                LIMIT 1
              ) AS current_user_name,
              (
+               SELECT wr.user_id 
+               FROM work_requests wr 
+               WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
+                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned')
+               ORDER BY wr.id DESC 
+               LIMIT 1
+             ) AS current_user_id,
+             (
                SELECT wr.requested_by 
                FROM work_requests wr 
                WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
-                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned', 'pending')
+                 AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned')
                ORDER BY wr.id DESC 
                LIMIT 1
              ) AS in_use_by
@@ -75,14 +83,14 @@ router.put("/:code/release", verifyToken, async (req, res) => {
     const staffName = userResult.rows.length > 0 ? userResult.rows[0].name.trim() : "Staff";
 
     // 2. Fetch resource details for notification message
-    const resCheck = await pool.query("SELECT * FROM resources WHERE resource_code = $1", [resourceCode]);
+    const resCheck = await pool.query("SELECT * FROM resources WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))", [resourceCode]);
     const resourceName = resCheck.rows.length > 0 ? resCheck.rows[0].name : resourceCode;
 
     // 3. Update resource status back to 'Available' in the resources table
     const updateRes = await pool.query(
       `UPDATE resources 
        SET status = 'Available' 
-       WHERE resource_code = $1 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
        RETURNING *`,
       [resourceCode]
     );
@@ -95,7 +103,7 @@ router.put("/:code/release", verifyToken, async (req, res) => {
     await pool.query(
       `UPDATE work_requests 
        SET status = 'Closed' 
-       WHERE resource_code = $1`,
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))`,
       [resourceCode]
     );
 

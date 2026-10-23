@@ -84,7 +84,7 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
     const updateRes = await db.query(
       `UPDATE resources 
        SET status = 'Available' 
-       WHERE resource_code = $1 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
        RETURNING *`,
       [resourceCode]
     );
@@ -97,9 +97,8 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
     await db.query(
       `UPDATE work_requests 
        SET status = 'Closed' 
-       WHERE resource_code = $1 
-         AND (LOWER(TRIM(requested_by)) = LOWER(TRIM($2)) OR requested_by::text = $3)`,
-      [resourceCode, staffName, String(staffId)]
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))`,
+      [resourceCode]
     );
 
     // 4. Log the activity with user_id so it remains strictly user-specific
@@ -210,48 +209,39 @@ router.get("/dashboard", verifyToken, async (req, res) => {
 
     const recentRequests = allRequests.slice(0, 5);
 
-    // 4. Fetch Assigned Resources
+    // 4. Fetch Assigned Resources: only resources currently In Use whose latest active request belongs to this staff member
     let assignedResources = [];
     try {
       const resourceQuery = `
-        SELECT * FROM resources 
-        WHERE resource_code IN (
-          SELECT resource_code FROM work_requests 
-          WHERE (user_id = $4
-              OR LOWER(TRIM(requested_by)) = LOWER(TRIM($1)) 
-              OR LOWER(TRIM(requested_by)) = LOWER(TRIM($2)) 
-              OR requested_by::text = $3)
-          AND LOWER(status) IN ('approved', 'in progress', 'resolved', 'completed')
-        )
-        AND status = 'In Use'
-        ORDER BY id DESC
+        SELECT r.* 
+        FROM resources r
+        WHERE LOWER(r.status) = 'in use'
+          AND EXISTS (
+            SELECT 1 FROM (
+              SELECT wr.user_id, wr.requested_by 
+              FROM work_requests wr 
+              WHERE LOWER(TRIM(wr.resource_code)) = LOWER(TRIM(r.resource_code))
+                AND LOWER(wr.status) IN ('approved', 'in progress', 'assigned')
+              ORDER BY wr.id DESC 
+              LIMIT 1
+            ) latest_wr
+            WHERE latest_wr.user_id = $1 
+               OR LOWER(TRIM(latest_wr.requested_by)) = LOWER(TRIM($2))
+               OR LOWER(TRIM(latest_wr.requested_by)) = LOWER(TRIM($3))
+               OR latest_wr.requested_by::text = $4
+          )
+        ORDER BY r.id DESC
       `;
       const resResult = await db.query(resourceQuery, [
+        staffId,
         staffName,
         staffEmail,
         String(staffId),
-        staffId,
       ]);
       assignedResources = resResult.rows;
     } catch (err) {
-      assignedResources = allRequests
-        .filter((r) => {
-          const status = (r.status || "").toLowerCase();
-          const isApproved = [
-            "in progress",
-            "resolved",
-            "approved",
-            "completed",
-          ].includes(status);
-          return r.resource_code && r.resource_code.trim() !== "" && isApproved;
-        })
-        .map((r) => ({
-          resource_code: r.resource_code,
-          name: r.title,
-          category: r.category,
-          status: "In Use",
-          created_at: r.created_at,
-        }));
+      console.error("Error fetching assigned resources for staff dashboard:", err);
+      assignedResources = [];
     }
 
     const totalAssignedResources = assignedResources.length;

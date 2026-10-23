@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * ActionMenu - A modern 3-dots action menu with an eye-friendly dropdown.
+ * Uses React Portal to prevent container clipping (overflow-hidden / overflow-x-auto).
  *
  * @param {Array} actions - Array of action objects:
  *   [
@@ -14,23 +16,44 @@ import React, { useState, useRef, useEffect } from "react";
  *     }
  *   ]
  * @param {string} align - Dropdown alignment ('right' | 'left', default 'right')
+ * @param {string} ariaLabel - Accessibility label
  */
 export default function ActionMenu({ actions = [], align = "right", ariaLabel = "Row actions" }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
-  const menuRef = useRef(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, openUpward: false });
   const buttonRef = useRef(null);
+  const menuRef = useRef(null);
 
   // Filter out any null/undefined/falsy actions
   const validActions = actions.filter(Boolean);
 
+  const calculatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuWidth = 176;
+    const estimatedHeight = Math.max(validActions.length * 40 + 16, 70);
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward = spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
+
+    let left = align === "left" ? rect.left : rect.right - menuWidth;
+    if (left + menuWidth > window.innerWidth - 12) {
+      left = window.innerWidth - menuWidth - 12;
+    }
+    if (left < 12) {
+      left = 12;
+    }
+
+    const top = openUpward ? rect.top - 6 : rect.bottom + 6;
+
+    setCoords({ top, left, openUpward });
+  };
+
   const toggleMenu = (e) => {
     e.stopPropagation();
-    if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      // If less than 170px below, flip menu upwards
-      setOpenUpward(spaceBelow < 170);
+    if (!isOpen) {
+      calculatePosition();
     }
     setIsOpen((prev) => !prev);
   };
@@ -44,7 +67,6 @@ export default function ActionMenu({ actions = [], align = "right", ariaLabel = 
     }
   };
 
-  // Close on outside click
   useEffect(() => {
     if (!isOpen) return;
 
@@ -65,21 +87,29 @@ export default function ActionMenu({ actions = [], align = "right", ariaLabel = 
       }
     };
 
+    const handleScrollOrResize = () => {
+      setIsOpen(false);
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
     };
   }, [isOpen]);
 
   if (validActions.length === 0) return null;
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div className="relative inline-block text-left">
       <button
         ref={buttonRef}
         type="button"
@@ -104,40 +134,48 @@ export default function ActionMenu({ actions = [], align = "right", ariaLabel = 
         </svg>
       </button>
 
-      {isOpen && (
-        <div
-          role="menu"
-          className={`absolute ${
-            align === "right" ? "right-0" : "left-0"
-          } ${
-            openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
-          } w-44 min-w-[170px] bg-white rounded-2xl border border-slate-200/90 shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150`}
-        >
-          {validActions.map((action, idx) => (
-            <button
-              key={idx}
-              type="button"
-              role="menuitem"
-              disabled={action.disabled}
-              onClick={(e) => handleActionClick(e, action)}
-              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-medium transition cursor-pointer ${
-                action.disabled
-                  ? "opacity-40 cursor-not-allowed text-slate-400"
-                  : action.danger
-                  ? "text-rose-600 hover:bg-rose-50/80 hover:text-rose-700"
-                  : "text-slate-700 hover:bg-slate-50 hover:text-[#0F172A]"
-              }`}
-            >
-              {action.icon && (
-                <span className="shrink-0 flex items-center justify-center text-inherit">
-                  {action.icon}
-                </span>
-              )}
-              <span className="truncate">{action.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{
+              position: "fixed",
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              transform: coords.openUpward ? "translateY(-100%)" : "none",
+              zIndex: 9999,
+              width: "176px",
+            }}
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-150 select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {validActions.map((action, idx) => (
+              <button
+                key={idx}
+                type="button"
+                role="menuitem"
+                disabled={action.disabled}
+                onClick={(e) => handleActionClick(e, action)}
+                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-medium transition cursor-pointer ${
+                  action.disabled
+                    ? "opacity-40 cursor-not-allowed text-slate-400"
+                    : action.danger
+                    ? "text-rose-600 hover:bg-rose-50/80 hover:text-rose-700"
+                    : "text-slate-700 hover:bg-slate-50 hover:text-[#0F172A]"
+                }`}
+              >
+                {action.icon && (
+                  <span className="shrink-0 flex items-center justify-center text-inherit">
+                    {action.icon}
+                  </span>
+                )}
+                <span className="truncate">{action.label}</span>
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

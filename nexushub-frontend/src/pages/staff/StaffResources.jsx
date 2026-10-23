@@ -3,8 +3,9 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import API from "../../services/api";
 import socket from "../../services/socket";
-import { Eye } from "iconoir-react";
+import { Eye, LogOut } from "iconoir-react";
 import ActionMenu from "../../components/ActionMenu";
+import ConfirmationModal from "../../components/ConfirmationModal";
 import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function StaffResources() {
@@ -18,15 +19,18 @@ export default function StaffResources() {
   const [resources, setResources] = useState(initialResources);
   const [loading, setLoading] = useState(initialResources.length === 0);
   const [currentUserName, setCurrentUserName] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Modal state (View Only)
+  // Modal state (View Only & Release Confirmation)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
+  const [confirmReleaseResource, setConfirmReleaseResource] = useState(null);
+  const [isReleasing, setIsReleasing] = useState(false);
 
   const categoryOptions = [
     "Laptop",
@@ -112,6 +116,7 @@ export default function StaffResources() {
       if (userStr) {
         const u = JSON.parse(userStr);
         if (u.name) setCurrentUserName(u.name);
+        if (u.id) setCurrentUserId(u.id);
       }
     } catch (e) {
       console.error("Could not parse user from localStorage", e);
@@ -139,6 +144,21 @@ export default function StaffResources() {
       clearInterval(syncInterval);
     };
   }, []);
+
+  const handleConfirmRelease = async () => {
+    if (!confirmReleaseResource) return;
+    setIsReleasing(true);
+    try {
+      const code = confirmReleaseResource.resource_code;
+      await API.put(`/staff/resources/${encodeURIComponent(code)}/release`);
+      setConfirmReleaseResource(null);
+      await fetchResources();
+    } catch (err) {
+      console.error("Failed to release resource:", err);
+    } finally {
+      setIsReleasing(false);
+    }
+  };
 
   const openViewModal = (res) => {
     setSelectedResource(res);
@@ -265,9 +285,12 @@ export default function StaffResources() {
                       const isInUse = res.status?.toLowerCase() === "in use";
                       const isAssignedToMe =
                         isInUse &&
-                        currentUserName &&
-                        res.current_user_name?.toLowerCase().trim() ===
-                          currentUserName.toLowerCase().trim();
+                        ((currentUserId &&
+                          res.current_user_id &&
+                          String(res.current_user_id) === String(currentUserId)) ||
+                          (currentUserName &&
+                            res.current_user_name?.toLowerCase().trim() ===
+                              currentUserName.toLowerCase().trim()));
 
                       const isHighlighted =
                         activeHighlight &&
@@ -327,6 +350,11 @@ export default function StaffResources() {
                                   icon: <Eye className="w-4 h-4 text-slate-500" />,
                                   onClick: () => openViewModal(res),
                                 },
+                                isAssignedToMe && {
+                                  label: "Release Resource",
+                                  icon: <LogOut className="w-4 h-4 text-amber-600" />,
+                                  onClick: () => setConfirmReleaseResource(res),
+                                },
                               ]}
                             />
                           </td>
@@ -344,6 +372,14 @@ export default function StaffResources() {
       {/* View Details Modal */}
       {isViewModalOpen && selectedResource && (() => {
         const isInUse = selectedResource.status?.toLowerCase() === "in use";
+        const isAssignedToMe =
+          isInUse &&
+          ((currentUserId &&
+            selectedResource.current_user_id &&
+            String(selectedResource.current_user_id) === String(currentUserId)) ||
+            (currentUserName &&
+              selectedResource.current_user_name?.toLowerCase().trim() ===
+                currentUserName.toLowerCase().trim()));
 
         return (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -388,7 +424,19 @@ export default function StaffResources() {
                   {selectedResource.details || "No details provided."}
                 </p>
               </div>
-              <div className="flex items-center justify-end pt-2">
+              <div className="flex items-center justify-end gap-2 pt-2">
+                {isAssignedToMe && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      setConfirmReleaseResource(selectedResource);
+                    }}
+                    className="px-3.5 py-2 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition cursor-pointer border border-amber-200"
+                  >
+                    Release Resource
+                  </button>
+                )}
                 <button
                   onClick={() => setIsViewModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
@@ -400,6 +448,19 @@ export default function StaffResources() {
           </div>
         );
       })()}
+
+      {/* Release Resource Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!confirmReleaseResource}
+        onClose={() => !isReleasing && setConfirmReleaseResource(null)}
+        onConfirm={handleConfirmRelease}
+        title="Release Resource"
+        message={`Are you sure you want to release "${confirmReleaseResource?.name || confirmReleaseResource?.resource_code}"? It will become Available in the shared inventory.`}
+        confirmText={isReleasing ? "Releasing..." : "Release Resource"}
+        cancelText="Keep Resource"
+        type="release"
+        loading={isReleasing}
+      />
     </div>
   );
 }

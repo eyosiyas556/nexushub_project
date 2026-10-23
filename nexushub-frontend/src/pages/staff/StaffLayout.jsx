@@ -302,13 +302,30 @@ export default function StaffLayout() {
     // 3. Instantly redirect if associated with resources or requests
     if (redirectPath) {
       const combinedText = `${notif.title || ""} ${notif.message || ""}`;
-      const reqMatch = combinedText.match(/REQ-[\w\d-]+/i);
-      let highlightKey = reqMatch ? reqMatch[0] : null;
+      const msgText = notif.message || "";
+      let highlightKey = null;
 
-      if (!highlightKey && redirectPath.includes("resource")) {
-        const resMatch = combinedText.match(/resource\s+([A-Za-z0-9_-]+)/i) ||
-                         combinedText.match(/\b([A-Z]{2,5}-\d+)\b/i);
-        highlightKey = resMatch ? resMatch[1] : null;
+      if (redirectPath.includes("resource")) {
+        // 1. Explicit resource code pattern like res-001 or RES-004
+        const codeMatch = combinedText.match(/\b(res-?\d+|[A-Za-z]{2,6}-\d+)\b/i);
+        if (codeMatch) {
+          highlightKey = codeMatch[1];
+        } else {
+          // 2. Try 'resource <code/id>' from message text only
+          const msgMatch = msgText.match(/(?:resource|asset)\s+([A-Za-z0-9_-]+)/i);
+          if (
+            msgMatch &&
+            !["available", "request", "added", "new", "released", "updated"].includes(
+              msgMatch[1].toLowerCase()
+            )
+          ) {
+            highlightKey = msgMatch[1];
+          }
+        }
+      } else {
+        // Work requests
+        const reqMatch = combinedText.match(/REQ-[\w\d-]+/i);
+        if (reqMatch) highlightKey = reqMatch[0];
       }
 
       if (highlightKey) {

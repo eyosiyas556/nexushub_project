@@ -55,10 +55,28 @@ export default function Resources() {
   useEffect(() => {
     if (highlightParam) {
       setActiveHighlight(highlightParam);
+      // Clear filters so the targeted resource is definitely rendered in the table
+      setSearchQuery("");
+      setCategoryFilter("");
+      setStatusFilter("");
+
       const timer = setTimeout(() => {
-        const targetEl =
+        const lowerKey = highlightParam.toLowerCase();
+        let targetEl =
           document.getElementById(`row-${highlightParam}`) ||
+          document.querySelector(`[data-resource-code="${highlightParam}" i]`) ||
           document.querySelector(`[data-resource-code="${highlightParam}"]`);
+
+        if (!targetEl) {
+          const rows = document.querySelectorAll("tr[data-resource-code]");
+          for (const r of rows) {
+            if ((r.getAttribute("data-resource-code") || "").toLowerCase() === lowerKey) {
+              targetEl = r;
+              break;
+            }
+          }
+        }
+
         if (targetEl) {
           targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -67,7 +85,7 @@ export default function Resources() {
       const clearTimer = setTimeout(() => {
         setActiveHighlight(null);
         setSearchParams({}, { replace: true });
-      }, 4000);
+      }, 5000);
 
       return () => {
         clearTimeout(timer);

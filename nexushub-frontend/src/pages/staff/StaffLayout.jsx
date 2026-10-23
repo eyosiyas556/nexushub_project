@@ -344,13 +344,13 @@ export default function StaffLayout() {
   };
 
   const executeClearNotifications = async () => {
+    setNotifications([]);
+    setIsConfirmClearNotifOpen(false);
     try {
       await API.delete("/notifications");
-      setNotifications([]);
     } catch (err) {
       console.error("Failed to clear notifications:", err);
-    } finally {
-      setIsConfirmClearNotifOpen(false);
+      fetchNotifications();
     }
   };
 
@@ -387,94 +387,6 @@ export default function StaffLayout() {
 
   return (
     <div className="h-screen w-screen bg-[#F1F5F9] flex overflow-hidden p-0 md:p-3 md:gap-3">
-      {/* Mobile Slide-Over Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div className="relative w-72 max-w-[85vw] bg-[#0d0f12] bg-gradient-to-b from-[#14171f] to-[#0a0c10] border-r border-white/10 h-full p-4 flex flex-col justify-between text-slate-300 shadow-2xl z-10 animate-in slide-in-from-left duration-200">
-            <div>
-              <div className="h-16 flex items-center justify-between px-3 mb-4 border-b border-white/5">
-                <span className="text-lg font-extrabold tracking-tight text-white flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                    <Flash className="w-4 h-4 fill-white text-white" />
-                  </span>
-                  Nexus<span className="text-blue-500">Hub</span>
-                </span>
-                <button 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
-                  aria-label="Close Menu"
-                >
-                  <Xmark className="w-4 h-4" />
-                </button>
-              </div>
-
-              <nav className="space-y-1.5">
-                {mainLinks.map((link) => {
-                  const isActive = location.pathname === link.path;
-                  return (
-                    <button
-                      key={link.path}
-                      onClick={() => {
-                        navigate(link.path);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 ${
-                        isActive ? "bg-white/10 text-white shadow-inner border border-white/10 font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <span className="text-sm">{link.icon}</span>
-                      {link.name}
-                    </button>
-                  );
-                })}
-              </nav>
-
-              <div className="my-6 px-2 flex items-center gap-3">
-                <div className="h-[1px] bg-white/10 flex-1"></div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Management</span>
-                <div className="h-[1px] bg-white/10 flex-1"></div>
-              </div>
-
-              <nav className="space-y-1.5">
-                {secondaryLinks.map((link) => {
-                  const isActive = location.pathname === link.path;
-                  return (
-                    <button
-                      key={link.path}
-                      onClick={() => {
-                        navigate(link.path);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 ${
-                        isActive ? "bg-white/10 text-white shadow-inner border border-white/10 font-semibold" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <span className="text-sm">{link.icon}</span>
-                      {link.name}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            <div className="pt-4 border-t border-white/10 px-2 flex items-center justify-between">
-              <p className="text-[10px] text-slate-500">NexusHub Staff</p>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 font-medium cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Sleek Dark Mode Sidebar (Desktop & Tablet) */}
       <aside className={`bg-[#0d0f12] bg-gradient-to-b from-[#14171f] to-[#0a0c10] border border-white/5 rounded-3xl flex flex-col justify-between shrink-0 hidden md:flex text-slate-300 shadow-2xl transition-all duration-300 ${
         sidebarCollapsed ? "w-20 p-3" : "w-56 lg:w-64 p-4"
@@ -600,14 +512,6 @@ export default function StaffLayout() {
             </div>
           )}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Mobile Hamburger Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white md:hidden transition cursor-pointer"
-              aria-label="Open Navigation Menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
             <div>
               <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[130px] sm:max-w-none">
                 Staff Operations Portal

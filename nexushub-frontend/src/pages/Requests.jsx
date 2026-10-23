@@ -113,6 +113,10 @@ export default function Requests() {
 
   // Handle direct Approve for Equipment / Resource requests
   const handleApprove = async (req) => {
+    // Instant optimistic update: change status locally with 0ms delay
+    setRequests((prev) =>
+      prev.map((r) => (r.id === req.id ? { ...r, status: "Approved" } : r))
+    );
     try {
       const updatedPayload = {
         ...req,
@@ -122,6 +126,7 @@ export default function Requests() {
       fetchRequests();
     } catch (err) {
       console.error("Failed to approve request:", err);
+      fetchRequests();
       alert(err.response?.data?.error || "Error approving request.");
     }
   };
@@ -138,52 +143,74 @@ export default function Requests() {
     e.preventDefault();
     if (!selectedRequest) return;
 
+    const reqId = selectedRequest.id;
+    const reason = rejectionReason;
+    const updatedPayload = {
+      ...selectedRequest,
+      status: "Rejected",
+      rejection_reason: reason,
+    };
+
+    // Instant optimistic update: close modal and update status locally immediately
+    setIsRejectModalOpen(false);
+    setSelectedRequest(null);
+    setRejectionReason("");
+    setRequests((prev) =>
+      prev.map((r) => (r.id === reqId ? { ...r, status: "Rejected", rejection_reason: reason } : r))
+    );
+
     try {
-      const updatedPayload = {
-        ...selectedRequest,
-        status: "Rejected",
-        rejection_reason: rejectionReason,
-      };
-      await API.put(`/requests/${selectedRequest.id}`, updatedPayload);
-      setIsRejectModalOpen(false);
-      setSelectedRequest(null);
-      setRejectionReason("");
+      await API.put(`/requests/${reqId}`, updatedPayload);
       fetchRequests();
     } catch (err) {
       console.error("Failed to reject request:", err);
+      fetchRequests();
       alert(err.response?.data?.error || "Error rejecting request.");
     }
   };
 
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedRequest) return;
+    const reqId = selectedRequest.id;
+    const updatedPayload = {
+      ...selectedRequest,
+      assigned_to: assignData.assigned_to,
+      status: assignData.status,
+      priority: assignData.priority,
+      rejection_reason: assignData.status === "Rejected" ? assignData.rejection_reason : selectedRequest.rejection_reason,
+    };
+
+    // Instant optimistic update: close modal and update status locally immediately
+    setIsAssignModalOpen(false);
+    setSelectedRequest(null);
+    setRequests((prev) =>
+      prev.map((r) => (r.id === reqId ? { ...r, ...updatedPayload } : r))
+    );
+
     try {
-      const updatedPayload = {
-        ...selectedRequest,
-        assigned_to: assignData.assigned_to,
-        status: assignData.status,
-        priority: assignData.priority,
-        rejection_reason: assignData.status === "Rejected" ? assignData.rejection_reason : selectedRequest.rejection_reason,
-      };
-      await API.put(`/requests/${selectedRequest.id}`, updatedPayload);
-      setIsAssignModalOpen(false);
-      setSelectedRequest(null);
+      await API.put(`/requests/${reqId}`, updatedPayload);
       fetchRequests();
     } catch (err) {
       console.error("Failed to assign request:", err);
+      fetchRequests();
       alert(err.response?.data?.error || "Error assigning request.");
     }
   };
 
   const executeDelete = async () => {
     if (!deleteConfirmId) return;
+    const idToDelete = deleteConfirmId;
+    // Instant optimistic update: close modal and remove from list immediately
+    setDeleteConfirmId(null);
+    setRequests((prev) => prev.filter((r) => r.id !== idToDelete));
+
     try {
-      await API.delete(`/requests/${deleteConfirmId}`);
+      await API.delete(`/requests/${idToDelete}`);
       fetchRequests();
     } catch (err) {
       console.error("Failed to delete work request:", err);
-    } finally {
-      setDeleteConfirmId(null);
+      fetchRequests();
     }
   };
 

@@ -84,17 +84,15 @@ export default function Dashboard() {
   }, []);
 
   const executeClearHistory = async () => {
-    setClearing(true);
+    // Instant optimistic update: clear immediately and close modal
+    setActivities([]);
+    setIsConfirmClearOpen(false);
+    setClearing(false);
     try {
-      const response = await API.delete("/dashboard/activities");
-      if (response.data.success) {
-        setActivities([]);
-      }
+      await API.delete("/dashboard/activities");
     } catch (err) {
       console.error("Failed to clear activity history:", err);
-    } finally {
-      setClearing(false);
-      setIsConfirmClearOpen(false);
+      fetchDashboardData();
     }
   };
 

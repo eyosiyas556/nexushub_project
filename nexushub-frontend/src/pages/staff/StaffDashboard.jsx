@@ -110,17 +110,15 @@ export default function StaffDashboard() {
   const [activityViewMode, setActivityViewMode] = useState("all");
 
   const executeClearLogs = async () => {
-    setClearingLogs(true);
+    // Instant optimistic update: clear immediately and close modal
+    setRecentLogs([]);
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+    setClearingLogs(false);
     try {
-      const response = await API.delete("/staff/activities");
-      if (response.data.success) {
-        setRecentLogs([]);
-      }
+      await API.delete("/staff/activities");
     } catch (err) {
       console.error("Failed to clear activity history:", err);
-    } finally {
-      setClearingLogs(false);
-      setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      fetchDashboardData();
     }
   };
 

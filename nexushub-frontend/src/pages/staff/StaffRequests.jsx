@@ -181,16 +181,18 @@ export default function StaffWorkRequests() {
 
   const executeDeleteRequest = async () => {
     if (!deleteConfirmId) return;
+    const idToDelete = deleteConfirmId;
+    setDeleteConfirmId(null);
+    const updated = requests.filter((req) => req.id !== idToDelete);
+    setRequests(updated);
+    setCachedData("staff_requests", updated);
 
     try {
-      await API.delete(`/staff/requests/${deleteConfirmId}`);
-      const updated = requests.filter((req) => req.id !== deleteConfirmId);
-      setRequests(updated);
-      setCachedData("staff_requests", updated);
+      await API.delete(`/staff/requests/${idToDelete}`);
+      fetchWorkRequests();
     } catch (err) {
       console.error("Failed to delete request:", err);
-    } finally {
-      setDeleteConfirmId(null);
+      fetchWorkRequests();
     }
   };
 

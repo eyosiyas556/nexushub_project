@@ -106,29 +106,38 @@ export default function AssignedRequest() {
       return;
     }
 
-    setUpdatingStatus(true);
+    const reqId = selectedRequest.id;
+    const targetStatus = newStatus;
+    const reason = targetStatus.toLowerCase() === "rejected" ? rejectionReason : null;
+
+    // Instant optimistic update: close modal and update state locally with 0ms delay
+    setIsViewModalOpen(false);
+    setRejectionReason("");
+    setAssignedRequests((prev) =>
+      prev.map((req) =>
+        req.id === reqId ? { ...req, status: targetStatus, rejection_reason: reason } : req
+      )
+    );
+
     try {
       const response = await API.patch(
-        `/staff/requests/${selectedRequest.id}/status`,
+        `/staff/requests/${reqId}/status`,
         { 
-          status: newStatus,
-          rejection_reason: newStatus.toLowerCase() === "rejected" ? rejectionReason : null
+          status: targetStatus,
+          rejection_reason: reason
         },
         { headers: { "x-user-name": currentStaffName } }
       );
 
-      // Update local state
-      setAssignedRequests(
-        assignedRequests.map((req) => (req.id === selectedRequest.id ? response.data.data : req))
-      );
-      setSelectedRequest(response.data.data);
-      setIsViewModalOpen(false);
-      setRejectionReason("");
+      if (response.data?.data) {
+        setAssignedRequests((prev) =>
+          prev.map((req) => (req.id === reqId ? response.data.data : req))
+        );
+      }
     } catch (err) {
       console.error("Failed to update status:", err);
+      fetchAssignedRequests();
       alert(err.response?.data?.msg || err.response?.data?.error || "Failed to update status");
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 

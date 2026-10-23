@@ -256,7 +256,7 @@ export default function AssignedRequest() {
                         data-resource-code={req.resource_code || ""}
                         className={`transition-all duration-700 ${
                           isHighlighted
-                            ? "bg-amber-50"
+                            ? "bg-[#F3F4F6]"
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >

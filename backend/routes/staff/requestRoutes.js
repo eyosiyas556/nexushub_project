@@ -52,7 +52,6 @@ router.get('/', verifyToken, async (req, res) => {
         LEFT JOIN users u ON wr.user_id = u.id
         WHERE wr.user_id = $1 
            OR LOWER(TRIM(wr.requested_by)) = LOWER(TRIM($2))
-           OR (wr.assigned_to IS NOT NULL AND LOWER(TRIM(wr.assigned_to)) = LOWER(TRIM($2)))
         ORDER BY wr.created_at DESC
       `;
       const { rows } = await pool.query(staffQuery, [userId, userName]);

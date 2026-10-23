@@ -30,6 +30,7 @@ export default function Requests() {
     assigned_to: "",
     status: "Pending",
     priority: "Medium",
+    rejection_reason: "",
   });
 
   // Rejection reason state
@@ -37,6 +38,8 @@ export default function Requests() {
 
   const priorities = ["Low", "Medium", "High", "Urgent"];
   const statuses = ["Pending", "Approved", "In Progress", "Resolved", "Rejected", "Closed"];
+  // For other (non-equipment) requests, admin has strictly 3 statuses: Pending, Rejected, Resolved
+  const otherRequestStatuses = ["Pending", "Rejected", "Resolved"];
 
   const fetchRequests = async () => {
     try {
@@ -129,6 +132,7 @@ export default function Requests() {
         assigned_to: assignData.assigned_to,
         status: assignData.status,
         priority: assignData.priority,
+        rejection_reason: assignData.status === "Rejected" ? assignData.rejection_reason : selectedRequest.rejection_reason,
       };
       await API.put(`/requests/${selectedRequest.id}`, updatedPayload);
       setIsAssignModalOpen(false);
@@ -161,7 +165,8 @@ export default function Requests() {
     setSelectedRequest(req);
     setAssignData({
       assigned_to: req.assigned_to || "",
-      status: req.status || "Pending",
+      status: ["Pending", "Rejected", "Resolved"].includes(req.status) ? req.status : "Pending",
+      rejection_reason: req.rejection_reason || "",
       priority: req.priority || "Medium",
     });
     // Fetch staff members excluding the requester & admins for this specific request
@@ -198,7 +203,7 @@ export default function Requests() {
               Work Requests Management
             </h1>
             <p className="text-xs sm:text-sm text-[#64748B]">
-              Manage requests. Equipment rows feature direct Approve/Reject controls; other categories can be edited and assigned to staff.
+              Review requests. Use the 3-dots menu to Approve or Reject equipment requests with reasons, or to View, Assign, and Update other requests.
             </p>
           </div>
         </div>
@@ -325,55 +330,30 @@ export default function Requests() {
                         {/* Status Column without background */}
                         <td className="py-4 px-6">
                           {isEquipment ? (
-                            <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                req.status === "Approved" || req.status === "Completed"
+                                  ? "bg-[#E6F4EA] text-[#137333]"
+                                  : req.status === "Rejected"
+                                  ? "bg-[#FCE8E6] text-[#C5221F]"
+                                  : req.status === "In Progress"
+                                  ? "bg-[#E8F0FE] text-[#1A73E8]"
+                                  : "bg-[#FEF7E0] text-[#B06000]"
+                              }`}
+                            >
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                   req.status === "Approved" || req.status === "Completed"
-                                    ? "bg-[#E6F4EA] text-[#137333]"
+                                    ? "bg-[#137333]"
                                     : req.status === "Rejected"
-                                    ? "bg-[#FCE8E6] text-[#C5221F]"
+                                    ? "bg-[#C5221F]"
                                     : req.status === "In Progress"
-                                    ? "bg-[#E8F0FE] text-[#1A73E8]"
-                                    : "bg-[#FEF7E0] text-[#B06000]"
+                                    ? "bg-[#1A73E8]"
+                                    : "bg-[#B06000]"
                                 }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                    req.status === "Approved" || req.status === "Completed"
-                                      ? "bg-[#137333]"
-                                      : req.status === "Rejected"
-                                      ? "bg-[#C5221F]"
-                                      : req.status === "In Progress"
-                                      ? "bg-[#1A73E8]"
-                                      : "bg-[#B06000]"
-                                  }`}
-                                />
-                                {req.status || "Pending"}
-                              </span>
-
-                              {!isLocked && statusLower === "pending" && (
-                                <div className="flex items-center gap-1 ml-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleApprove(req)}
-                                    title="Approve Request"
-                                    aria-label="Approve"
-                                    className="p-1 text-emerald-600 hover:text-emerald-700 transition cursor-pointer inline-flex items-center"
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openRejectModal(req)}
-                                    title="Reject Request"
-                                    aria-label="Reject"
-                                    className="p-1 text-red-600 hover:text-red-700 transition cursor-pointer inline-flex items-center"
-                                  >
-                                    <Xmark className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                              />
+                              {req.status || "Pending"}
+                            </span>
                           ) : (
                             <div className="space-y-0.5">
                               <span
@@ -411,37 +391,60 @@ export default function Requests() {
                         </td>
                         {/* Actions Column */}
                         <td className="py-3 px-6 text-right">
-                          <ActionMenu
-                            actions={[
-                              {
-                                label: "View Details",
-                                icon: <Eye className="w-4 h-4 text-slate-500" />,
-                                onClick: () => openViewModal(req),
-                              },
-                              !isLocked && statusLower === "pending" && {
-                                label: "Approve Request",
-                                icon: <Check className="w-4 h-4 text-emerald-600" />,
-                                onClick: () => handleApprove(req),
-                              },
-                              !isLocked && statusLower === "pending" && {
-                                label: "Reject Request",
-                                icon: <Xmark className="w-4 h-4 text-rose-600" />,
-                                onClick: () => openRejectModal(req),
-                                danger: true,
-                              },
-                              !isEquipment && {
-                                label: "Assign / Update",
-                                icon: <EditPencil className="w-4 h-4 text-amber-600" />,
-                                onClick: () => openAssignModal(req),
-                              },
-                              {
-                                label: "Delete Request",
-                                icon: <Trash className="w-4 h-4 text-rose-600" />,
-                                onClick: () => setDeleteConfirmId(req.id),
-                                danger: true,
-                              },
-                            ]}
-                          />
+                          {isEquipment ? (
+                            <ActionMenu
+                              actions={
+                                !isLocked && statusLower === "pending"
+                                  ? [
+                                      {
+                                        label: "Approve Request",
+                                        icon: <Check className="w-4 h-4 text-emerald-600" />,
+                                        onClick: () => handleApprove(req),
+                                      },
+                                      {
+                                        label: "Reject Request",
+                                        icon: <Xmark className="w-4 h-4 text-rose-600" />,
+                                        onClick: () => openRejectModal(req),
+                                        danger: true,
+                                      },
+                                    ]
+                                  : [
+                                      {
+                                        label: "View Details",
+                                        icon: <Eye className="w-4 h-4 text-slate-500" />,
+                                        onClick: () => openViewModal(req),
+                                      },
+                                      {
+                                        label: "Delete Request",
+                                        icon: <Trash className="w-4 h-4 text-rose-600" />,
+                                        onClick: () => setDeleteConfirmId(req.id),
+                                        danger: true,
+                                      },
+                                    ]
+                              }
+                            />
+                          ) : (
+                            <ActionMenu
+                              actions={[
+                                {
+                                  label: "View Details",
+                                  icon: <Eye className="w-4 h-4 text-slate-500" />,
+                                  onClick: () => openViewModal(req),
+                                },
+                                {
+                                  label: "Assign / Edit",
+                                  icon: <EditPencil className="w-4 h-4 text-amber-600" />,
+                                  onClick: () => openAssignModal(req),
+                                },
+                                {
+                                  label: "Delete Request",
+                                  icon: <Trash className="w-4 h-4 text-rose-600" />,
+                                  onClick: () => setDeleteConfirmId(req.id),
+                                  danger: true,
+                                },
+                              ]}
+                            />
+                          )}
                         </td>
                       </tr>
                     );
@@ -453,32 +456,44 @@ export default function Requests() {
         </div>
       </div>
 
-      {/* Rejection Reason Modal */}
+      {/* Rejection Reason Modal - Card to give reason when Reject is clicked for equipment requests */}
       {isRejectModalOpen && selectedRequest && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-[#0F172A]">
-              Reject Request: {selectedRequest.request_number}
-            </h3>
-            <p className="text-xs text-[#64748B]">
-              Please provide a reason for rejecting this request. This will be sent as a notification to <strong className="text-[#0F172A]">{selectedRequest.requested_by}</strong>.
-            </p>
-            <form onSubmit={handleRejectSubmit} className="space-y-3 text-xs">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between">
               <div>
-                <label className="block font-semibold text-[#64748B] mb-1">
+                <h3 className="text-base font-bold text-[#0F172A]">
+                  Reject Equipment Request
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Request <span className="font-mono font-semibold text-[#0F172A]">{selectedRequest.request_number}</span> &bull; {selectedRequest.title}
+                </p>
+              </div>
+              <span className="p-2 bg-rose-50 text-rose-600 rounded-xl shrink-0">
+                <Xmark className="w-4 h-4" />
+              </span>
+            </div>
+
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Please provide a reason for rejecting this equipment request. This will be sent as a real-time notification to <strong className="text-[#0F172A]">{selectedRequest.requested_by}</strong>.
+            </p>
+
+            <form onSubmit={handleRejectSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-[#0F172A] mb-1.5">
                   Rejection Reason <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   required
                   rows="3"
-                  placeholder="e.g., Resource is currently unavailable or under maintenance..."
+                  placeholder="e.g., Resource is currently reserved, undergoing maintenance, or not available..."
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-gray-200 rounded-xl focus:outline-none focus:border-[#0F172A]"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-gray-200 rounded-xl text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-rose-500 focus:bg-white transition"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsRejectModalOpen(false)}
@@ -488,7 +503,7 @@ export default function Requests() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 font-semibold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition cursor-pointer"
+                  className="px-4 py-2 font-semibold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition cursor-pointer shadow-sm"
                 >
                   Confirm Rejection
                 </button>
@@ -665,7 +680,7 @@ export default function Requests() {
                     }
                     className="w-full px-3 py-2 border rounded-xl text-xs bg-white"
                   >
-                    {statuses.map((st) => (
+                    {otherRequestStatuses.map((st) => (
                       <option key={st} value={st}>
                         {st}
                       </option>
@@ -673,6 +688,22 @@ export default function Requests() {
                   </select>
                 </div>
               </div>
+
+              {assignData.status === "Rejected" && (
+                <div className="space-y-1 bg-rose-50/60 border border-rose-100 p-3 rounded-xl animate-in fade-in duration-150 text-xs">
+                  <label className="block font-bold text-rose-600 text-xs">
+                    Rejection Reason <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows="2"
+                    placeholder="Provide a clear reason for rejecting this request..."
+                    value={assignData.rejection_reason || ""}
+                    onChange={(e) => setAssignData({ ...assignData, rejection_reason: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-rose-200 rounded-lg text-xs text-[#0F172A] focus:outline-none focus:border-rose-500"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3">
                 <button

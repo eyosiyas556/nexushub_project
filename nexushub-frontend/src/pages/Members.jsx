@@ -272,7 +272,7 @@ export default function Members() {
                       </td>
                       <td className="py-4 px-6 font-medium">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                             member.status === "Active"
                               ? "text-[#137333]"
                               : "text-[#5F6368]"
@@ -584,7 +584,7 @@ export default function Members() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                     selectedMember.status === "Active"
                       ? "text-[#137333]"
                       : "text-[#5F6368]"

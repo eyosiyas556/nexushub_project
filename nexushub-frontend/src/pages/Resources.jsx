@@ -305,7 +305,7 @@ export default function Resources() {
                       <td className="py-4 px-6 space-y-1">
                         <div>
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               res.status === "Available"
                                 ? "text-[#137333]"
                                 : res.status === "In Use"
@@ -576,7 +576,7 @@ export default function Resources() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                     selectedResource.status === "Available"
                       ? "text-[#137333]"
                       : selectedResource.status === "In Use"

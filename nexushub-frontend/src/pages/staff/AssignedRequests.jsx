@@ -262,7 +262,7 @@ export default function AssignedRequest() {
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               req.priority === "Urgent"
                                 ? "text-[#C5221F]"
                                 : req.priority === "High"
@@ -277,7 +277,7 @@ export default function AssignedRequest() {
                         </td>
                         <td className="py-4 px-6">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               req.status === "Approved" || req.status === "Resolved" || req.status === "Completed" || req.status === "Closed"
                                 ? "text-[#137333]"
                                 : req.status === "In Progress"
@@ -336,7 +336,7 @@ export default function AssignedRequest() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Priority:</strong>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                     selectedRequest.priority === "Urgent"
                       ? "text-[#C5221F]"
                       : selectedRequest.priority === "High"
@@ -352,7 +352,7 @@ export default function AssignedRequest() {
               <div className="flex items-center gap-2">
                 <strong className="text-[#64748B]">Status:</strong>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e5e7eb] ${
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                     selectedRequest.status === "Approved" || selectedRequest.status === "Completed" || selectedRequest.status === "Resolved" || selectedRequest.status === "Closed"
                       ? "text-[#137333]"
                       : selectedRequest.status === "Rejected"

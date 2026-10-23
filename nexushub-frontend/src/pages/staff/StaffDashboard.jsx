@@ -317,7 +317,7 @@ export default function StaffDashboard() {
                       {req.title || `Request #${req.id}`}
                     </span>
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#e5e7eb] ${
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                         req.status === "Approved" ||
                         req.status === "Completed" ||
                         req.status === "Resolved" ||
@@ -346,7 +346,7 @@ export default function StaffDashboard() {
                     <span className="flex items-center gap-1.5">
                       Priority:{" "}
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#e5e7eb] ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                           req.priority === "Urgent"
                             ? "text-[#C5221F]"
                             : req.priority === "High"
@@ -552,7 +552,7 @@ export default function StaffDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#e5e7eb] text-[#1A73E8]">
+                      <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#F8FAFC] border border-slate-200/80 text-[#1A73E8]">
                         {res.status || "In Use"}
                       </span>
                       <button

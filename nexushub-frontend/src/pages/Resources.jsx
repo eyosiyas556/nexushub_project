@@ -258,14 +258,14 @@ export default function Resources() {
         {/* Resources Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto min-h-[280px]">
-            <table className="w-full text-left border-collapse min-w-[850px]">
+            <table className="w-full text-left border-collapse table-fixed min-w-[850px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Code</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Resource Name</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status & User</th>
-                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
+                  <th className="py-4 px-5 w-[20%] font-bold text-[#0F172A]">Resource Code</th>
+                  <th className="py-4 px-5 w-[26%] font-bold text-[#0F172A]">Resource Name</th>
+                  <th className="py-4 px-5 w-[18%] font-bold text-[#0F172A]">Category</th>
+                  <th className="py-4 px-5 w-[24%] font-bold text-[#0F172A]">Status & User</th>
+                  <th className="py-4 px-5 w-[12%] text-right font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -293,16 +293,16 @@ export default function Resources() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                      <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-mono font-medium text-[#0F172A] truncate">
                         {res.resource_code}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {res.name}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {res.category}
                       </td>
-                      <td className="py-4 px-6 space-y-1">
+                      <td className="py-3.5 px-5 space-y-1">
                         <div>
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
@@ -319,12 +319,12 @@ export default function Resources() {
                           </span>
                         </div>
                         {res.status === "In Use" && (
-                          <p className="text-[11px] font-medium text-slate-500">
+                          <p className="text-[11px] font-medium text-slate-500 truncate">
                             User: <strong className="text-[#0F172A] font-medium">{res.in_use_by || res.requested_by || "Assigned Staff"}</strong>
                           </p>
                         )}
                       </td>
-                      <td className="py-3 px-6 text-right">
+                      <td className="py-3.5 px-5 text-right">
                         <ActionMenu
                           actions={[
                             {

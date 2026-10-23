@@ -306,15 +306,15 @@ export default function StaffWorkRequests() {
         {/* Work Requests Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto min-h-[280px]">
-            <table className="w-full text-left border-collapse min-w-[750px]">
+            <table className="w-full text-left border-collapse table-fixed min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Request #</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Title</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Priority</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status</th>
-                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
+                  <th className="w-[18%] py-4 px-5 font-bold text-[#0F172A]">Request #</th>
+                  <th className="w-[28%] py-4 px-5 font-bold text-[#0F172A]">Title</th>
+                  <th className="w-[18%] py-4 px-5 font-bold text-[#0F172A]">Category</th>
+                  <th className="w-[13%] py-4 px-5 font-bold text-[#0F172A]">Priority</th>
+                  <th className="w-[13%] py-4 px-5 font-bold text-[#0F172A]">Status</th>
+                  <th className="w-[10%] py-4 px-5 text-right font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -350,16 +350,16 @@ export default function StaffWorkRequests() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                        <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-mono font-medium text-[#0F172A] truncate">
                           {req.request_number}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.title}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.category}
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="py-3.5 px-5 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               req.priority === "Urgent"
@@ -374,7 +374,7 @@ export default function StaffWorkRequests() {
                             {req.priority || "Medium"}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="py-3.5 px-5 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               req.status === "Approved" || req.status === "Completed" || req.status === "Resolved" || req.status === "Closed"
@@ -389,7 +389,7 @@ export default function StaffWorkRequests() {
                             {req.status}
                           </span>
                         </td>
-                        <td className="py-3 px-6 text-right">
+                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
                           <ActionMenu
                             actions={[
                               {

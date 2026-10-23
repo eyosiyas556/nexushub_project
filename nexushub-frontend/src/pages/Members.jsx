@@ -230,16 +230,16 @@ export default function Members() {
         {/* Members Table */}
         <div className="bg-[#FFFFFF] border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto min-h-[280px]">
-            <table className="w-full text-left border-collapse min-w-[750px]">
+            <table className="w-full text-left border-collapse table-fixed min-w-[750px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Name</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Email</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Phone</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Department</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Role</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status</th>
-                  <th className="py-4 px-6 text-right w-32 font-bold text-[#0F172A]">Actions</th>
+                  <th className="py-4 px-5 w-[18%] font-bold text-[#0F172A]">Name</th>
+                  <th className="py-4 px-5 w-[22%] font-bold text-[#0F172A]">Email</th>
+                  <th className="py-4 px-5 w-[14%] font-bold text-[#0F172A]">Phone</th>
+                  <th className="py-4 px-5 w-[15%] font-bold text-[#0F172A]">Department</th>
+                  <th className="py-4 px-5 w-[11%] font-bold text-[#0F172A]">Role</th>
+                  <th className="py-4 px-5 w-[10%] font-bold text-[#0F172A]">Status</th>
+                  <th className="py-4 px-5 w-[10%] text-right font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -255,22 +255,22 @@ export default function Members() {
                       key={member.id}
                       className="hover:bg-[#F8FAFC]/55 transition"
                     >
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {member.name}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {member.email}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {member.phone || "N/A"}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {member.department}
                       </td>
-                      <td className="py-4 px-6 font-medium text-[#0F172A]">
+                      <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {member.role || "Staff"}
                       </td>
-                      <td className="py-4 px-6 font-medium">
+                      <td className="py-3.5 px-5 font-medium">
                         <span
                           className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                             member.status === "Active"
@@ -281,7 +281,7 @@ export default function Members() {
                           {member.status}
                         </span>
                       </td>
-                      <td className="py-3 px-6 text-right">
+                      <td className="py-3.5 px-5 text-right">
                         <ActionMenu
                           actions={[
                             {

@@ -315,16 +315,16 @@ export default function Requests() {
         {/* Work Requests Table */}
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto min-h-[280px]">
-            <table className="w-full text-left border-collapse min-w-[900px]">
+            <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Request #</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Title</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Category</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Priority</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Status / Assigned</th>
-                  <th className="py-4 px-6 font-bold text-[#0F172A]">Requested By</th>
-                  <th className="py-4 px-6 text-right w-36 font-bold text-[#0F172A]">Actions</th>
+                  <th className="py-4 px-5 w-[15%] font-bold text-[#0F172A]">Request #</th>
+                  <th className="py-4 px-5 w-[23%] font-bold text-[#0F172A]">Title</th>
+                  <th className="py-4 px-5 w-[13%] font-bold text-[#0F172A]">Category</th>
+                  <th className="py-4 px-5 w-[12%] font-bold text-[#0F172A]">Priority</th>
+                  <th className="py-4 px-5 w-[15%] font-bold text-[#0F172A]">Status / Assigned</th>
+                  <th className="py-4 px-5 w-[12%] font-bold text-[#0F172A]">Requested By</th>
+                  <th className="py-4 px-5 w-[10%] text-right font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -359,21 +359,21 @@ export default function Requests() {
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >
-                        <td className="py-4 px-6 font-mono font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-mono font-medium text-[#0F172A] truncate">
                           {req.request_number}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#0F172A]">
-                          {req.title}
+                        <td className="py-3.5 px-5 font-medium text-[#0F172A]">
+                          <span className="block truncate">{req.title}</span>
                           {req.resource_code && (
                             <span className="block text-[10px] font-mono text-slate-500 font-normal">
                               Asset: {req.resource_code}
                             </span>
                           )}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.category}
                         </td>
-                        <td className="py-4 px-6">
+                        <td className="py-3.5 px-5">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
                               req.priority === "Urgent"
@@ -389,7 +389,7 @@ export default function Requests() {
                           </span>
                         </td>
                         {/* Status Column */}
-                        <td className="py-4 px-6">
+                        <td className="py-3.5 px-5">
                           {isEquipment ? (
                             <span
                               className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
@@ -419,17 +419,17 @@ export default function Requests() {
                               >
                                 {req.status || "Pending"}
                               </span>
-                              <p className="text-[11px] font-medium text-slate-500">
+                              <p className="text-[11px] font-medium text-slate-500 truncate">
                                 Assigned: <strong className="text-[#0F172A] font-medium">{req.assigned_to || "Unassigned"}</strong>
                               </p>
                             </div>
                           )}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#0F172A]">
+                        <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                           {req.requested_by}
                         </td>
                         {/* Actions Column */}
-                        <td className="py-3 px-6 text-right">
+                        <td className="py-3.5 px-5 text-right">
                           {isEquipment ? (
                             <ActionMenu
                               actions={

@@ -9,8 +9,14 @@ import { getCachedData, setCachedData } from "../../services/cache";
 
 export default function StaffResources() {
   const cached = getCachedData("staff_resources");
-  const [resources, setResources] = useState(cached || []);
-  const [loading, setLoading] = useState(!cached);
+  const initialResources = Array.isArray(cached)
+    ? cached
+    : Array.isArray(cached?.resources)
+    ? cached.resources
+    : [];
+
+  const [resources, setResources] = useState(initialResources);
+  const [loading, setLoading] = useState(initialResources.length === 0);
   const [currentUserName, setCurrentUserName] = useState("");
 
   // Search & Filter state
@@ -80,13 +86,19 @@ export default function StaffResources() {
         clearTimeout(clearTimer);
       };
     }
-  }, [highlightParam, resources]);
+  }, [highlightParam, resources, setSearchParams]);
 
   const fetchResources = async () => {
     try {
       const response = await API.get("/staff/resources");
-      setResources(response.data);
-      setCachedData("staff_resources", response.data);
+      const list = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.resources)
+        ? response.data.resources
+        : [];
+
+      setResources(list);
+      setCachedData("staff_resources", list);
     } catch (err) {
       console.error("Failed to load staff resources:", err);
     } finally {
@@ -133,18 +145,25 @@ export default function StaffResources() {
     setIsViewModalOpen(true);
   };
 
-  const filteredResources = resources.filter((res) => {
+  const safeResources = Array.isArray(resources)
+    ? resources
+    : Array.isArray(resources?.resources)
+    ? resources.resources
+    : [];
+
+  const filteredResources = safeResources.filter((res) => {
+    if (!res) return false;
     const query = searchQuery.toLowerCase();
     const matchesSearch =
-      res.resource_code?.toLowerCase().includes(query) ||
-      res.name?.toLowerCase().includes(query);
+      (res.resource_code || "").toLowerCase().includes(query) ||
+      (res.name || "").toLowerCase().includes(query);
 
     const matchesCategory = categoryFilter
-      ? res.category?.toLowerCase() === categoryFilter.toLowerCase()
+      ? (res.category || "").toLowerCase() === categoryFilter.toLowerCase()
       : true;
 
     const matchesStatus = statusFilter
-      ? res.status?.toLowerCase() === statusFilter.toLowerCase()
+      ? (res.status || "").toLowerCase() === statusFilter.toLowerCase()
       : true;
 
     return matchesSearch && matchesCategory && matchesStatus;

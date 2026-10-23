@@ -328,7 +328,7 @@ export default function Requests() {
                         data-resource-code={req.resource_code || ""}
                         className={`transition-all duration-700 ${
                           isHighlighted
-                            ? "bg-amber-100/90 ring-2 ring-amber-400 ring-offset-2 animate-pulse shadow-md font-semibold"
+                            ? "bg-amber-50"
                             : "hover:bg-[#F8FAFC]/55"
                         }`}
                       >

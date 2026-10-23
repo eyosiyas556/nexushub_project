@@ -89,44 +89,11 @@ export default function Layout() {
 
     try {
       const res = await API.get("/notifications");
-      const freshList = res.data || [];
-      setNotifications(freshList);
-      autoClearPageNotifications(freshList);
+      setNotifications(res.data || []);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     }
   };
-
-  // Auto-mark notifications as read if user is already on the page related to the notification
-  const autoClearPageNotifications = async (notifsList) => {
-    const list = notifsList || notifications;
-    if (!list || list.length === 0) return;
-
-    const currentPath = location.pathname;
-    const toClear = list.filter((n) => {
-      if (n.is_read) return false;
-      const target = getNotificationRedirect(n);
-      if (!target) return false;
-      return currentPath === target || currentPath.startsWith(target);
-    });
-
-    if (toClear.length > 0) {
-      const toClearIds = new Set(toClear.map((n) => n.id));
-      setNotifications((prev) =>
-        prev.map((n) => (toClearIds.has(n.id) ? { ...n, is_read: true } : n))
-      );
-      for (const notif of toClear) {
-        try {
-          await API.patch(`/notifications/${notif.id}/read`);
-        } catch (err) {}
-      }
-    }
-  };
-
-  // Auto-dismiss notification badges when navigating directly to the related page
-  useEffect(() => {
-    autoClearPageNotifications(notifications);
-  }, [location.pathname]);
 
   useEffect(() => {
     fetchNotifications();

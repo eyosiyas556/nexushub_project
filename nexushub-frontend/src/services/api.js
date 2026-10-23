@@ -1,19 +1,18 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  if (envUrl && !envUrl.includes('nexushub-project.onrender.com/api')) {
-    return envUrl;
-  }
   if (typeof window !== 'undefined' && window.location) {
     const { origin, hostname } = window.location;
-    if (hostname.includes('onrender.com') && !hostname.includes('nexushub-project.')) {
+    // When running in production on Render (or any live host), always talk to the same origin's /api
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return `${origin}/api`;
     }
   }
-  return import.meta.env.PROD 
-    ? 'https://nexushub-project-4.onrender.com/api' 
-    : 'http://localhost:5000/api';
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && !envUrl.includes('nexushub-project-4') && !envUrl.includes('nexushub-project.onrender.com')) {
+    return envUrl;
+  }
+  return 'http://localhost:5000/api';
 };
 
 const baseURL = getApiBaseUrl();

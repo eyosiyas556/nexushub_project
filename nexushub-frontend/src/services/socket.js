@@ -1,24 +1,20 @@
 import { io } from 'socket.io-client';
 
 const getBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  // Guard against outdated URL without -4
-  if (envUrl && !envUrl.includes('nexushub-project.onrender.com')) {
-    return envUrl.replace(/\/api\/?$/, '');
-  }
-
-  // If running in browser and served directly by the backend on Render
   if (typeof window !== 'undefined' && window.location) {
     const { origin, hostname } = window.location;
-    if (hostname.includes('onrender.com') && !hostname.includes('nexushub-project.')) {
+    // When running in production on Render (or any live host), always talk to the same origin
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return origin;
     }
   }
 
-  // Production backend fallback
-  return import.meta.env.PROD
-    ? 'https://nexushub-project-4.onrender.com'
-    : 'http://localhost:5000';
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && !envUrl.includes('nexushub-project-4') && !envUrl.includes('nexushub-project.onrender.com')) {
+    return envUrl.replace(/\/api\/?$/, '');
+  }
+
+  return 'http://localhost:5000';
 };
 
 const SOCKET_URL = getBaseUrl();

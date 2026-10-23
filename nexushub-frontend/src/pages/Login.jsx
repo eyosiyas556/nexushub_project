@@ -109,7 +109,8 @@ export default function Login() {
                 navigate('/dashboard');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to establish demo session.');
+            console.error("Demo login error:", err);
+            setError(err.response?.data?.error || err.message || 'Failed to establish demo session.');
         } finally {
             setLoading(false);
         }
@@ -273,25 +274,32 @@ export default function Login() {
                                 </button>
 
                                 <div className="pt-4 border-t border-gray-100 space-y-2 mt-4">
-                                    <p className="text-[11px] font-semibold text-[#64748B] text-center uppercase tracking-wider">
-                                        Portfolio Live Demo
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
+                                            Quick Portfolio Demo Access
+                                        </p>
+                                        <span className="text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full">
+                                            1-Click Login
+                                        </span>
+                                    </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             type="button"
                                             onClick={() => handleDemoLogin('admin')}
                                             disabled={loading}
-                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs"
+                                            className="py-2.5 px-3 bg-[#0F172A] hover:bg-black text-white border border-gray-900 rounded-xl text-xs font-bold transition text-center cursor-pointer disabled:opacity-50 shadow-sm flex flex-col items-center justify-center gap-0.5"
                                         >
-                                            Demo Admin
+                                            <span>Demo Admin</span>
+                                            <span className="text-[10px] text-slate-400 font-normal">Full Dashboard Access</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => handleDemoLogin('staff')}
                                             disabled={loading}
-                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs"
+                                            className="py-2.5 px-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-gray-200 rounded-xl text-xs font-bold text-[#0F172A] transition text-center cursor-pointer disabled:opacity-50 shadow-xs flex flex-col items-center justify-center gap-0.5"
                                         >
-                                            Demo Staff
+                                            <span>Demo Staff</span>
+                                            <span className="text-[10px] text-slate-500 font-normal">Staff Portal Access</span>
                                         </button>
                                     </div>
                                 </div>

@@ -1,18 +1,27 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
+  // If running in the browser
   if (typeof window !== 'undefined' && window.location) {
     const { origin, hostname } = window.location;
-    // When running in production on Render (or any live host), always talk to the same origin's /api
-    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // Local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+    // If the frontend is being served directly by the Express backend
+    if (hostname.includes('nexushub-project-4.onrender.com') || hostname.includes('nexushub-project.onrender.com')) {
       return `${origin}/api`;
     }
   }
+
+  // If VITE_API_URL is configured and is an absolute URL
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  if (envUrl && !envUrl.includes('nexushub-project-4') && !envUrl.includes('nexushub-project.onrender.com')) {
+  if (envUrl && envUrl.startsWith('http')) {
     return envUrl;
   }
-  return 'http://localhost:5000/api';
+
+  // Default live production backend API
+  return 'https://nexushub-project-4.onrender.com/api';
 };
 
 const baseURL = getApiBaseUrl();

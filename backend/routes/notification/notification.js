@@ -16,7 +16,20 @@ router.get('/', verifyToken, async (req, res) => {
       LIMIT 30;
     `;
     const { rows } = await pool.query(query, [userId]);
-    res.json(rows);
+    
+    // Deduplicate any consecutive or identical notifications within a 2-minute window
+    const uniqueNotifications = [];
+    const seen = new Set();
+    for (const notif of (rows || [])) {
+      const timeWindow = Math.floor(new Date(notif.created_at).getTime() / 120000);
+      const key = `${notif.user_id}_${notif.title}_${notif.message}_${timeWindow}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueNotifications.push(notif);
+      }
+    }
+
+    res.json(uniqueNotifications);
   } catch (err) {
     console.error("Error fetching notifications:", err.message);
     res.status(500).json({ error: 'Failed to fetch notifications' });

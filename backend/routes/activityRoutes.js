@@ -29,7 +29,19 @@ router.get('/', verifyToken, async (req, res) => {
       };
     });
 
-    res.json(activities);
+    // Deduplicate any identical activities within a 2-minute window
+    const uniqueActivities = [];
+    const seen = new Set();
+    for (const act of activities) {
+      const timeWindow = Math.floor(new Date(act.created_at).getTime() / 120000);
+      const key = `${act.action}_${act.description}_${timeWindow}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueActivities.push(act);
+      }
+    }
+
+    res.json(uniqueActivities);
   } catch (err) {
     console.error('Failed to fetch activity logs:', err);
     res.status(500).json({ error: 'Server error fetching activities.' });

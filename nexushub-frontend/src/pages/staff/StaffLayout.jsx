@@ -89,7 +89,18 @@ export default function StaffLayout() {
 
     try {
       const res = await API.get("/notifications");
-      setNotifications(res.data || []);
+      const list = res.data || [];
+      const unique = [];
+      const seen = new Set();
+      for (const item of list) {
+        const timeWindow = Math.floor(new Date(item.created_at).getTime() / 120000);
+        const key = `${item.title}_${item.message}_${timeWindow}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(item);
+        }
+      }
+      setNotifications(unique);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     }

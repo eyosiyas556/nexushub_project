@@ -6,28 +6,7 @@ const { getIO } = require('../socket');
 
 router.use(verifyToken);
 
-// Helper function to create system notifications (with de-duplication to notify only once per task event)
-const sendNotification = async (targetUserId, title, message) => {
-  try {
-    if (!targetUserId) return;
-    const dupCheck = await pool.query(
-      `SELECT id FROM notifications 
-       WHERE user_id = $1 AND title = $2 AND message = $3 AND created_at > NOW() - INTERVAL '1 minute'`,
-      [targetUserId, title, message]
-    );
-    if (dupCheck.rows.length > 0) {
-      return;
-    }
-    await pool.query(
-      'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
-      [targetUserId, title, message]
-    );
-    // Real-time: push new notification to all connected clients immediately
-    getIO().emit('notifications_updated');
-  } catch (err) {
-    console.error("Failed to create notification:", err.message);
-  }
-};
+const { sendNotification, logActivity } = require('../utils/activityLogger');
 
 // GET /api/requests - Fetch all work requests (joined with user details for safety)
 router.get('/', async (req, res) => {
@@ -167,18 +146,21 @@ router.put('/:id', async (req, res) => {
 
       if (targetStatusLower === 'rejected') {
         await sendNotification(
+          pool,
           updatedRequest.user_id,
           'Request Rejected',
           `Your request (${updatedRequest.request_number}: "${updatedRequest.title}") has been rejected.${rejection_reason ? ` Reason: ${rejection_reason}` : ''}`
         );
       } else if (isEquipmentOrResourceCategory) {
         await sendNotification(
+          pool,
           updatedRequest.user_id,
           'Equipment Request Approved',
           `Your equipment request (${updatedRequest.request_number}: "${updatedRequest.title}") has been approved and assigned to you.`
         );
       } else {
         await sendNotification(
+          pool,
           updatedRequest.user_id,
           isOwnerAssigned ? 'New Task Assigned' : 'Request Status Updated',
           isOwnerAssigned 
@@ -190,6 +172,7 @@ router.put('/:id', async (req, res) => {
       const staffRes = await pool.query('SELECT id FROM users WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))', [finalAssignee]);
       if (staffRes.rows.length > 0 && staffRes.rows[0].id !== updatedRequest.user_id) {
         await sendNotification(
+          pool,
           staffRes.rows[0].id,
           'New Task Assigned',
           `You have been assigned to request ${updatedRequest.request_number}: "${updatedRequest.title}"`
@@ -197,6 +180,7 @@ router.put('/:id', async (req, res) => {
       }
     } else if (priority && priority !== currentRequest.priority && updatedRequest.user_id) {
       await sendNotification(
+        pool,
         updatedRequest.user_id,
         'Request Priority Updated',
         `The priority for request ${updatedRequest.request_number} ("${updatedRequest.title}") was updated to: ${priority}`
@@ -204,14 +188,11 @@ router.put('/:id', async (req, res) => {
     }
 
     // 6. LOG ACTIVITY: Updated work request
-    await pool.query(
-      `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
-      [
-        'UPDATED', 
-        'Work Request', 
-        `Updated request #${updatedRequest.id} status to '${updatedRequest.status}' ${rejection_reason ? `(Reason: ${rejection_reason})` : ''}`
-      ]
-    );
+    await logActivity(pool, {
+      action: 'UPDATED',
+      entityType: 'Work Request',
+      description: `Updated request #${updatedRequest.id} status to '${updatedRequest.status}' ${rejection_reason ? `(Reason: ${rejection_reason})` : ''}`
+    });
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');
@@ -258,20 +239,18 @@ router.delete('/:id', async (req, res) => {
 
     if (targetReq.user_id) {
       await sendNotification(
+        pool,
         targetReq.user_id,
         'Request Removed',
         `Your request (${targetReq.request_number}: "${targetReq.title}") has been removed by an administrator.`
       );
     }
 
-    await pool.query(
-      `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
-      [
-        'DELETED', 
-        'Work Request', 
-        `Deleted work request #${deletedRequest.id}`
-      ]
-    );
+    await logActivity(pool, {
+      action: 'DELETED',
+      entityType: 'Work Request',
+      description: `Deleted work request #${deletedRequest.id}`
+    });
 
     // Real-time: broadcast to all clients
     getIO().emit('requests_updated');

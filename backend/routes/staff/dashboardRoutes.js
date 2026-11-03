@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../../config/db");
 const verifyToken = require("../../middleware/authMiddleware");
 const { getIO } = require("../../socket");
+const { sendNotification, logActivity } = require("../../utils/activityLogger");
 
 // DELETE /api/staff/requests - Clear historical work requests for the logged-in staff
 router.delete("/requests", verifyToken, async (req, res) => {
@@ -80,20 +81,32 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
     }
     const staffName = userResult.rows[0].name.trim();
 
-    // 2. Update resource status back to 'Available' in the resources table
+    // 2. Fetch resource details for notification message
+    const resDetails = await db.query(
+      "SELECT name FROM resources WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))",
+      [resourceCode]
+    );
+    if (resDetails.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Resource not found." });
+    }
+    const resourceName = resDetails.rows[0].name || resourceCode;
+
+    // 3. Update resource status back to 'Available' in the resources table ONLY if not already Available
     const updateRes = await db.query(
       `UPDATE resources 
        SET status = 'Available' 
-       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))
+         AND LOWER(TRIM(status)) != 'available'
        RETURNING *`,
       [resourceCode]
     );
 
+    // If already Available, avoid duplicate processing/logging/notification
     if (updateRes.rows.length === 0) {
-      return res.status(404).json({ success: false, error: "Resource not found." });
+      return res.json({ success: true, message: "Resource is already released or available." });
     }
 
-    // 3. Close the associated work request status to 'Closed'
+    // 4. Close the associated work request status to 'Closed'
     await db.query(
       `UPDATE work_requests 
        SET status = 'Closed' 
@@ -101,18 +114,13 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
       [resourceCode]
     );
 
-    // 4. Log the activity with user_id so it remains strictly user-specific
-    await db.query(
-      `INSERT INTO activity_logs (user_id, entity_type, action, description, created_at) VALUES ($1, $2, $3, $4, NOW())`,
-      [staffId, "Resource", "Release Resource", `Staff member ${staffName} released resource ${resourceCode}.`]
-    );
-
-    // 5. Fetch resource name for the notification message
-    const resDetails = await db.query(
-      "SELECT name FROM resources WHERE resource_code = $1",
-      [resourceCode]
-    );
-    const resourceName = resDetails.rows.length > 0 ? resDetails.rows[0].name : resourceCode;
+    // 5. Log the activity with atomic deduplication
+    await logActivity(db, {
+      userId: staffId,
+      action: "Release Resource",
+      entityType: "Resource",
+      description: `Staff member ${staffName} released resource ${resourceCode}.`
+    });
 
     // 6. Notify all users (admins, managers, and staff) about the released resource
     const usersToNotify = await db.query(
@@ -120,13 +128,11 @@ router.put("/resources/:code/release", verifyToken, async (req, res) => {
       [staffId]
     );
     for (const user of usersToNotify.rows) {
-      await db.query(
-        "INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)",
-        [
-          user.id,
-          "Resource Now Available",
-          `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available for requests.`
-        ]
+      await sendNotification(
+        db,
+        user.id,
+        "Resource Now Available",
+        `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available for requests.`
       );
     }
 
@@ -254,10 +260,22 @@ router.get("/dashboard", verifyToken, async (req, res) => {
          WHERE user_id = $1 
             OR description ILIKE $2 
             OR description ILIKE $3 
-         ORDER BY id DESC LIMIT 5`,
+         ORDER BY id DESC LIMIT 10`,
         [staffId, `%${staffName}%`, `%${staffEmail}%`]
       );
-      recentLogs = logsRes.rows;
+      
+      // Deduplicate any identical activities within a 2-minute window
+      const uniqueLogs = [];
+      const seen = new Set();
+      for (const log of (logsRes.rows || [])) {
+        const timeWindow = Math.floor(new Date(log.created_at).getTime() / 120000);
+        const key = `${log.action}_${log.description}_${timeWindow}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueLogs.push(log);
+        }
+      }
+      recentLogs = uniqueLogs.slice(0, 5);
     } catch (err) {
       console.error("Error fetching logs:", err);
       recentLogs = [];

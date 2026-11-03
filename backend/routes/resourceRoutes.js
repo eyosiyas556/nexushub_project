@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../config/db");
 const verifyToken = require("../middleware/authMiddleware");
 const { getIO } = require("../socket");
+const { sendNotification, logActivity } = require("../utils/activityLogger");
 
 // 1. Get All Resources (with search, filters, and accurate current user holder info)
 router.get("/", verifyToken, async (req, res) => {
@@ -67,10 +68,11 @@ router.post("/", verifyToken, async (req, res) => {
 
     const newResource = newResourceResult.rows[0];
 
-    await pool.query(
-      `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
-      ["CREATED", "Resource", `Added new resource: ${newResource.name} (${newResource.category})`]
-    );
+    await logActivity(pool, {
+      action: "CREATED",
+      entityType: "Resource",
+      description: `Added new resource: ${newResource.name} (${newResource.category})`
+    });
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
@@ -101,50 +103,53 @@ router.put("/:code/release", verifyToken, async (req, res) => {
     const staffName = userResult.rows.length > 0 ? userResult.rows[0].name.trim() : "Staff";
 
     // 2. Fetch resource details for notification message
-    const resCheck = await pool.query("SELECT * FROM resources WHERE resource_code = $1", [resourceCode]);
-    const resourceName = resCheck.rows.length > 0 ? resCheck.rows[0].name : resourceCode;
+    const resCheck = await pool.query("SELECT * FROM resources WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))", [resourceCode]);
+    if (resCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Resource not found." });
+    }
+    const resourceName = resCheck.rows[0].name || resourceCode;
 
-    // 3. Update resource status back to 'Available'
+    // 3. Update resource status back to 'Available' ONLY if not already Available
     const updateRes = await pool.query(
       `UPDATE resources 
        SET status = 'Available' 
-       WHERE resource_code = $1 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))
+         AND LOWER(TRIM(status)) != 'available'
        RETURNING *`,
       [resourceCode]
     );
 
+    // If already Available, avoid duplicate processing/logging/notification
     if (updateRes.rows.length === 0) {
-      return res.status(404).json({ success: false, error: "Resource not found." });
+      return res.json({ success: true, message: "Resource is already released or available." });
     }
 
     // 4. Close associated work requests
     await pool.query(
       `UPDATE work_requests 
        SET status = 'Closed' 
-       WHERE resource_code = $1`,
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))`,
       [resourceCode]
     );
 
-    // 5. Log activity
-    await pool.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, description) VALUES ($1, $2, $3, $4)`,
-      [staffId, "RELEASED", "Resource", `${staffName} released resource ${resourceCode} (${resourceName}), making it available.`]
-    );
+    // 5. Log activity with atomic deduplication
+    await logActivity(pool, {
+      userId: staffId,
+      action: "RELEASED",
+      entityType: "Resource",
+      description: `${staffName} released resource ${resourceCode} (${resourceName}), making it available.`
+    });
 
     // 6. NOTIFICATION TRIGGER: Notify all Admins and Managers
     const adminQuery = "SELECT id, name, role FROM users WHERE LOWER(role) LIKE '%admin%' OR LOWER(role) LIKE '%manager%'";
     const admins = await pool.query(adminQuery);
 
-    console.log(`[DEBUG] Found ${admins.rows.length} admin(s) to notify for resource release.`);
-
     for (const admin of admins.rows) {
-      await pool.query(
-        'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
-        [
-          admin.id,
-          'Resource Released',
-          `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available.`
-        ]
+      await sendNotification(
+        pool,
+        admin.id,
+        'Resource Released',
+        `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available.`
       );
     }
 
@@ -194,20 +199,19 @@ router.put("/:id", verifyToken, async (req, res) => {
       [updatedResource.resource_code]
     );
     if (activeHolderCheck.rows.length > 0 && activeHolderCheck.rows[0].user_id) {
-      await pool.query(
-        `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
-        [
-          activeHolderCheck.rows[0].user_id,
-          'Resource Updated',
-          `The resource "${updatedResource.name}" (${updatedResource.resource_code}) assigned to you was updated by an Administrator.`
-        ]
+      await sendNotification(
+        pool,
+        activeHolderCheck.rows[0].user_id,
+        'Resource Updated',
+        `The resource "${updatedResource.name}" (${updatedResource.resource_code}) assigned to you was updated by an Administrator.`
       );
     }
 
-    await pool.query(
-      `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
-      ["UPDATED", "Resource", `Updated resource details: ${updatedResource.name} (${updatedResource.category})`]
-    );
+    await logActivity(pool, {
+      action: "UPDATED",
+      entityType: "Resource",
+      description: `Updated resource details: ${updatedResource.name} (${updatedResource.category})`
+    });
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');
@@ -250,20 +254,19 @@ router.delete("/:id", verifyToken, async (req, res) => {
       [deletedResource.resource_code]
     );
     if (activeHolderCheck.rows.length > 0 && activeHolderCheck.rows[0].user_id) {
-      await pool.query(
-        `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
-        [
-          activeHolderCheck.rows[0].user_id,
-          'Resource Removed',
-          `The resource "${deletedResource.name}" (${deletedResource.resource_code}) was removed by an Administrator.`
-        ]
+      await sendNotification(
+        pool,
+        activeHolderCheck.rows[0].user_id,
+        'Resource Removed',
+        `The resource "${deletedResource.name}" (${deletedResource.resource_code}) was removed by an Administrator.`
       );
     }
 
-    await pool.query(
-      `INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)`,
-      ["DELETED", "Resource", `Removed resource: ${deletedResource.name} (${deletedResource.category})`]
-    );
+    await logActivity(pool, {
+      action: "DELETED",
+      entityType: "Resource",
+      description: `Removed resource: ${deletedResource.name} (${deletedResource.category})`
+    });
 
     // Real-time: notify all clients
     getIO().emit('resources_updated');

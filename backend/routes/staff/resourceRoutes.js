@@ -4,28 +4,7 @@ const pool = require('../../config/db');
 const verifyToken = require('../../middleware/authMiddleware');
 const { getIO } = require('../../socket');
 
-// Helper function to securely create system notifications (notify once per event)
-const sendNotification = async (targetUserId, title, message) => {
-  try {
-    if (!targetUserId) return;
-    const dupCheck = await pool.query(
-      `SELECT id FROM notifications 
-       WHERE user_id = $1 AND title = $2 AND message = $3 AND created_at > NOW() - INTERVAL '1 minute'`,
-      [targetUserId, title, message]
-    );
-    if (dupCheck.rows.length > 0) {
-      return;
-    }
-    await pool.query(
-      'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
-      [targetUserId, title, message]
-    );
-    getIO().emit('notifications_updated');
-    console.log(`[SUCCESS] Notification sent to User ID: ${targetUserId}`);
-  } catch (err) {
-    console.error("Failed to create notification:", err.message);
-  }
-};
+const { sendNotification, logActivity } = require('../../utils/activityLogger');
 
 // GET /api/staff/resources - Fetch ALL system resources with current holder info
 router.get('/', verifyToken, async (req, res) => {
@@ -73,7 +52,6 @@ router.get('/', verifyToken, async (req, res) => {
 
 // PUT /api/staff/resources/:code/release - Release an assigned resource from staff catalog
 router.put("/:code/release", verifyToken, async (req, res) => {
-  console.log(`[DEBUG] HIT PUT /api/staff/resources/${req.params.code}/release route`);
   try {
     const staffId = req.user.id;
     const resourceCode = req.params.code;
@@ -84,19 +62,24 @@ router.put("/:code/release", verifyToken, async (req, res) => {
 
     // 2. Fetch resource details for notification message
     const resCheck = await pool.query("SELECT * FROM resources WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))", [resourceCode]);
-    const resourceName = resCheck.rows.length > 0 ? resCheck.rows[0].name : resourceCode;
+    if (resCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Resource not found." });
+    }
+    const resourceName = resCheck.rows[0].name || resourceCode;
 
-    // 3. Update resource status back to 'Available' in the resources table
+    // 3. Update resource status back to 'Available' in the resources table ONLY if not already Available
     const updateRes = await pool.query(
       `UPDATE resources 
        SET status = 'Available' 
-       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1)) 
+       WHERE LOWER(TRIM(resource_code)) = LOWER(TRIM($1))
+         AND LOWER(TRIM(status)) != 'available'
        RETURNING *`,
       [resourceCode]
     );
 
+    // If already Available, avoid duplicate processing/logging/notification
     if (updateRes.rows.length === 0) {
-      return res.status(404).json({ success: false, error: "Resource not found." });
+      return res.json({ success: true, message: "Resource is already released or available." });
     }
 
     // 4. Close the associated work request for this resource
@@ -107,24 +90,21 @@ router.put("/:code/release", verifyToken, async (req, res) => {
       [resourceCode]
     );
 
-    // 5. Log the activity with user_id
-    await pool.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, description) VALUES ($1, $2, $3, $4)`,
-      [staffId, "RELEASED", "Resource", `${staffName} released resource ${resourceCode} (${resourceName}), making it available.`]
-    );
-
-    // DEBUG: Print all users and roles to your terminal to check matching
-    const allUsers = await pool.query("SELECT id, name, role FROM users");
-    console.log("[DEBUG] All users in DB:", allUsers.rows);
+    // 5. Log the activity with atomic deduplication
+    await logActivity(pool, {
+      userId: staffId,
+      action: "RELEASED",
+      entityType: "Resource",
+      description: `${staffName} released resource ${resourceCode} (${resourceName}), making it available.`
+    });
 
     // 6. NOTIFICATION TRIGGER: Notify ALL users (Admins, Managers, and Staff) except the user releasing it
     const recipientsQuery = "SELECT id, name FROM users WHERE id != $1";
     const recipients = await pool.query(recipientsQuery, [staffId]);
-    
-    console.log(`[DEBUG] Broadcasting resource release notification to ${recipients.rows.length} user(s).`);
 
     for (const recipient of recipients.rows) {
       await sendNotification(
+        pool,
         recipient.id,
         'Resource Available',
         `${staffName} has released resource ${resourceCode} ("${resourceName}"). It is now available for request!`

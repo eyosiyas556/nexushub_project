@@ -47,8 +47,23 @@ export default function StaffDashboard() {
         setStats(result.stats);
         setRecentRequests(result.recentRequests || []);
         setAssignedResources(result.assignedResources || []);
-        setRecentLogs(result.recentLogs || []);
-        setCachedData("staff_dashboard", result);
+        
+        const rawLogs = result.recentLogs || [];
+        const uniqueLogs = [];
+        const seenLogs = new Set();
+        for (const log of rawLogs) {
+          const timeWindow = Math.floor(new Date(log.created_at).getTime() / 120000);
+          const key = `${log.action}_${log.description}_${timeWindow}`;
+          if (!seenLogs.has(key)) {
+            seenLogs.add(key);
+            uniqueLogs.push(log);
+          }
+        }
+        setRecentLogs(uniqueLogs);
+        setCachedData("staff_dashboard", {
+          ...result,
+          recentLogs: uniqueLogs
+        });
       }
     } catch (error) {
       console.error("Failed to load dashboard data", error);
@@ -85,7 +100,11 @@ export default function StaffDashboard() {
     };
   }, []);
 
+  const releasingRef = useRef(false);
+
   const executeReleaseResource = async (resourceCode) => {
+    if (releasingRef.current) return;
+    releasingRef.current = true;
     try {
       const response = await API.put(
         `/staff/resources/${resourceCode}/release`
@@ -102,6 +121,7 @@ export default function StaffDashboard() {
     } catch (err) {
       console.error("Failed to release resource:", err);
     } finally {
+      releasingRef.current = false;
       setConfirmModal((prev) => ({ ...prev, isOpen: false }));
     }
   };

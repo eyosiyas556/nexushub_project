@@ -9,28 +9,7 @@ const generateRequestNumber = () => {
   return `REQ-${Date.now().toString().slice(-6)}`;
 };
 
-// Helper function to create system notifications (with de-duplication to notify only once per task event)
-const sendNotification = async (targetUserId, title, message) => {
-  try {
-    if (!targetUserId) return;
-    const dupCheck = await pool.query(
-      `SELECT id FROM notifications 
-       WHERE user_id = $1 AND title = $2 AND message = $3 AND created_at > NOW() - INTERVAL '1 minute'`,
-      [targetUserId, title, message]
-    );
-    if (dupCheck.rows.length > 0) {
-      return;
-    }
-    await pool.query(
-      'INSERT INTO notifications (user_id, title, message, is_read) VALUES ($1, $2, $3, false)',
-      [targetUserId, title, message]
-    );
-    // Real-time: push new notification to all connected clients immediately
-    getIO().emit('notifications_updated');
-  } catch (err) {
-    console.error("Failed to create notification:", err.message);
-  }
-};
+const { sendNotification, logActivity } = require('../../utils/activityLogger');
 
 // @route   GET /api/work-requests
 // @desc    Get work requests (Staff see only requests they created or are assigned to; Admins see all)
@@ -146,6 +125,7 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
     // Notify the request creator if applicable
     if (updatedReq.user_id && updatedReq.user_id !== userId) {
       await sendNotification(
+        pool,
         updatedReq.user_id,
         'Request Status Updated',
         `Your request (${updatedReq.request_number}) status has been updated to: ${status}`
@@ -159,12 +139,12 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
 
       for (const admin of admins.rows) {
         await sendNotification(
+          pool,
           admin.id,
           'Task Completed by Staff',
           `${staffName} has marked assigned task ${updatedReq.request_number} ("${updatedReq.title}") as Completed.`
         );
       }
-      console.log(`[SUCCESS] Task completion notification sent to ${admins.rows.length} admin(s).`);
     }
 
     // NOTIFICATION TRIGGER: Notify Admins / Managers if staff rejects a task
@@ -174,12 +154,12 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
 
       for (const admin of admins.rows) {
         await sendNotification(
+          pool,
           admin.id,
           'Task Rejected by Staff',
           `${staffName} has rejected assigned task ${updatedReq.request_number} ("${updatedReq.title}"). Reason: "${rejection_reason || 'No reason provided'}"`
         );
       }
-      console.log(`[SUCCESS] Task rejection notification sent to ${admins.rows.length} admin(s).`);
     }
 
     // Real-time: broadcast to all clients
@@ -260,6 +240,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     for (const admin of admins.rows) {
       await sendNotification(
+        pool,
         admin.id,
         `New ${category} Request (${request_number})`,
         `${requested_by} submitted a new request: "${title.trim()}"`
@@ -465,11 +446,13 @@ router.delete('/:id', verifyToken, async (req, res) => {
       const userRes = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
       const userName = userRes.rows[0]?.name?.trim() || 'Staff Member';
 
-      // Log the auto-release action in activity logs
-      await pool.query(
-        `INSERT INTO activity_logs (user_id, action, entity_type, description) VALUES ($1, $2, $3, $4)`,
-        [userId, "AUTO_RELEASED", "Resource", `${userName} deleted request #${currentReq.request_number}, automatically releasing resource ${resourceCode} back to available inventory.`]
-      );
+      // Log the auto-release action in activity logs with atomic deduplication
+      await logActivity(pool, {
+        userId,
+        action: "AUTO_RELEASED",
+        entityType: "Resource",
+        description: `${userName} deleted request #${currentReq.request_number}, automatically releasing resource ${resourceCode} back to available inventory.`
+      });
     }
 
     // Real-time: broadcast to all clients

@@ -4,6 +4,7 @@ const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const verifyToken = require("../middleware/authMiddleware");
 const { getIO } = require("../socket");
+const { sendNotification, logActivity } = require("../utils/activityLogger");
 
 // Protect all member routes with token verification
 router.use(verifyToken);
@@ -55,10 +56,11 @@ router.post("/", async (req, res) => {
     const newMember = newMemberResult.rows[0];
 
     // LOG ACTIVITY: Created new member
-    await pool.query(
-      "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
-      ["CREATED", "Team Member", `Created new team member: ${newMember.name} (${newMember.role})`]
-    );
+    await logActivity(pool, {
+      action: "CREATED",
+      entityType: "Team Member",
+      description: `Created new team member: ${newMember.name} (${newMember.role})`
+    });
 
     // Real-time: notify all clients that members list changed
     getIO().emit('members_updated');
@@ -130,20 +132,19 @@ router.put("/:id", async (req, res) => {
     const updatedMember = updatedMemberResult.rows[0];
 
     // NOTIFY STAFF MEMBER: Admin updated their profile/role/status
-    await pool.query(
-      `INSERT INTO notifications (user_id, title, message) VALUES ($1, $2, $3)`,
-      [
-        id,
-        "Account Profile Updated",
-        `Your staff profile has been updated by an Administrator (Department: ${updatedMember.department}, Role: ${updatedMember.role}, Status: ${updatedMember.status}).`
-      ]
+    await sendNotification(
+      pool,
+      id,
+      "Account Profile Updated",
+      `Your staff profile has been updated by an Administrator (Department: ${updatedMember.department}, Role: ${updatedMember.role}, Status: ${updatedMember.status}).`
     );
 
     // LOG ACTIVITY: Updated member
-    await pool.query(
-      "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
-      ["UPDATED", "Team Member", `Updated team member details: ${updatedMember.name} (${updatedMember.role})`]
-    );
+    await logActivity(pool, {
+      action: "UPDATED",
+      entityType: "Team Member",
+      description: `Updated team member details: ${updatedMember.name} (${updatedMember.role})`
+    });
 
     // Real-time: notify all clients
     getIO().emit('members_updated');
@@ -183,10 +184,11 @@ router.delete("/:id", async (req, res) => {
     const memberRole = fetchMember.rows.length > 0 ? fetchMember.rows[0].role : 'Staff';
 
     // LOG ACTIVITY: Deleted member
-    await pool.query(
-      "INSERT INTO activity_logs (action, entity_type, description) VALUES ($1, $2, $3)",
-      ["DELETED", "Team Member", `Removed team member: ${memberName} (${memberRole})`]
-    );
+    await logActivity(pool, {
+      action: "DELETED",
+      entityType: "Team Member",
+      description: `Removed team member: ${memberName} (${memberRole})`
+    });
 
     // Real-time: notify all clients
     getIO().emit('members_updated');

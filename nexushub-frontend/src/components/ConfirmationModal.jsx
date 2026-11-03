@@ -48,6 +48,24 @@ export default function ConfirmationModal({
     return "bg-[#0F172A] hover:bg-slate-800 text-white shadow-xs";
   };
 
+  const isSubmittingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      isSubmittingRef.current = false;
+    }
+  }, [isOpen]);
+
+  const handleConfirmClick = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (loading || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    if (typeof onConfirm === "function") {
+      onConfirm();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-150">
@@ -74,7 +92,7 @@ export default function ConfirmationModal({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={handleConfirmClick}
             disabled={loading}
             className={`px-4 py-2 text-xs font-semibold rounded-xl transition cursor-pointer disabled:opacity-50 ${getConfirmButtonClass()}`}
           >

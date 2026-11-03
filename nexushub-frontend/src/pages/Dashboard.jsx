@@ -46,12 +46,20 @@ export default function Dashboard() {
         const rawActivities = response.data.activities || [];
         const twentyFourHoursAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
         
-        const recentActivities = rawActivities.filter(act => {
+        const recentActivities = [];
+        const seenActs = new Set();
+        for (const act of rawActivities) {
           const rawDate = act.created_at || act.timestamp;
-          if (!rawDate) return false;
+          if (!rawDate) continue;
           const actTime = new Date(rawDate).getTime();
-          return !isNaN(actTime) && actTime >= twentyFourHoursAgo;
-        });
+          if (isNaN(actTime) || actTime < twentyFourHoursAgo) continue;
+          const timeWindow = Math.floor(actTime / 120000);
+          const key = `${act.action}_${act.description}_${timeWindow}`;
+          if (!seenActs.has(key)) {
+            seenActs.add(key);
+            recentActivities.push(act);
+          }
+        }
 
         setActivities(recentActivities);
         setCachedData("admin_dashboard", {

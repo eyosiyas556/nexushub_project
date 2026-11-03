@@ -75,6 +75,18 @@ router.get("/summary", verifyToken, async (req, res) => {
       };
     });
 
+    // Deduplicate any identical activities within a 2-minute window
+    const uniqueActivities = [];
+    const seenActs = new Set();
+    for (const act of activities) {
+      const timeWindow = Math.floor(new Date(act.created_at).getTime() / 120000);
+      const key = `${act.action}_${act.description}_${timeWindow}`;
+      if (!seenActs.has(key)) {
+        seenActs.add(key);
+        uniqueActivities.push(act);
+      }
+    }
+
     res.json({
       success: true,
       stats: {
@@ -96,7 +108,7 @@ router.get("/summary", verifyToken, async (req, res) => {
           other: otherCount,
         },
       },
-      activities,
+      activities: uniqueActivities,
     });
   } catch (err) {
     console.error("Dashboard Summary Error:", err.message);

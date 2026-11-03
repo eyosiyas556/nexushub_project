@@ -291,10 +291,10 @@ export default function Resources() {
               <thead>
                 <tr className="border-b border-gray-100 bg-[#F8FAFC]/80 text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
                   <th className="py-4 px-5 w-[20%] font-bold text-[#0F172A]">Resource Code</th>
-                  <th className="py-4 px-5 w-[26%] font-bold text-[#0F172A]">Resource Name</th>
+                  <th className="py-4 px-5 w-[36%] font-bold text-[#0F172A]">Resource Name</th>
                   <th className="py-4 px-5 w-[18%] font-bold text-[#0F172A]">Category</th>
-                  <th className="py-4 px-5 w-[24%] font-bold text-[#0F172A]">Status & User</th>
-                  <th className="py-4 px-5 w-[12%] text-right font-bold text-[#0F172A]">Actions</th>
+                  <th className="py-4 pl-5 pr-2 w-[18%] font-bold text-[#0F172A]">Status & User</th>
+                  <th className="py-4 pl-2 pr-5 w-[8%] text-right font-bold text-[#0F172A]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
@@ -331,7 +331,7 @@ export default function Resources() {
                       <td className="py-3.5 px-5 font-medium text-[#0F172A] truncate">
                         {res.category}
                       </td>
-                      <td className="py-3.5 px-5 space-y-1">
+                      <td className="py-3.5 pl-5 pr-2 space-y-1">
                         <div>
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F8FAFC] border border-slate-200/80 ${
@@ -353,7 +353,7 @@ export default function Resources() {
                           </p>
                         )}
                       </td>
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="py-3.5 pl-2 pr-5 text-right">
                         <ActionMenu
                           actions={[
                             {
